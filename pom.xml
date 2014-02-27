@@ -109,6 +109,12 @@
 
     <profiles>
         <profile>
+            <id>windows</id>
+            <modules>
+                <module>winpkg</module>
+            </modules>
+        </profile>
+        <profile>
             <id>analyze</id>
             <build>
                 <plugins>
@@ -244,6 +250,29 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+            <plugin>
+		<groupId>com.google.code.maven-replacer-plugin</groupId>
+		<artifactId>replacer</artifactId>
+		<version>1.5.2</version>
+		<executions>
+			<execution>
+			<goals>
+                        	<goal>replace</goal>
+			</goals>
+			</execution>
+		</executions>
+		<configuration>
+			<includes>
+				<include>winpkg/src/scripts/*</include>
+			</includes>
+			<replacements>
+				<replacement>
+                        		<token>@knox.version@</token>
+                        		<value>${project.version}</value>
+				</replacement>
+			</replacements>
+		</configuration>
+	    </plugin>
         </plugins>
     </build>
 
