@@ -82,7 +82,7 @@ function Main( $scriptDir )
     ### Install and Configure knox
     ###
     if ( $ENV:IS_knox -eq "yes" ) {
-      $roles = "knoxagent"
+      $roles = "gateway"
     }
 	
     Write-Log "Roles are $roles"

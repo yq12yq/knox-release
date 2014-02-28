@@ -1,4 +1,4 @@
-﻿### Licensed to the Apache Software Foundation (ASF) under one or more
+### Licensed to the Apache Software Foundation (ASF) under one or more
 ### contributor license agreements.  See the NOTICE file distributed with
 ### this work for additional information regarding copyright ownership.
 ### The ASF licenses this file to You under the Apache License, Version 2.0
@@ -129,7 +129,7 @@ function Install(
 		Write-Log "Node knox Role Services: $roles"
 
 		### Verify that roles are in the supported set	
-		CheckRole $roles @("knoxagent")
+		CheckRole $roles @("gateway")
 		Write-Log "Role : $roles"
 		foreach( $service in empty-null ($roles -Split('\s+')))
 		{
@@ -181,7 +181,7 @@ function Uninstall(
 		
 		### Stop and delete services
         ###
-        foreach( $service in ("knoxagent"))
+        foreach( $service in ("gateway"))
         {
             StopAndDeleteHadoopService $service
         }
@@ -228,7 +228,7 @@ function StartService(
     if ( $component -eq "knox" )
     {
         Write-Log "StartService: knox services"
-		CheckRole $roles @("knoxagent")
+		CheckRole $roles @("gateway")
 
         foreach ( $role in $roles -Split("\s+") )
         {
@@ -265,7 +265,7 @@ function StopService(
     if ( $component -eq "knox" )
     {
         ### Verify that roles are in the supported set
-        CheckRole $roles @("knoxagent")
+        CheckRole $roles @("gateway")
         foreach ( $role in $roles -Split("\s+") )
         {
             try
