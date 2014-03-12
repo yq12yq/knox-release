@@ -134,6 +134,11 @@ function Install(
 		foreach( $service in empty-null ($roles -Split('\s+')))
 		{
 			CreateAndConfigureHadoopService $service $HDP_RESOURCES_DIR $knoxInstallToBin $serviceCredential
+            ###
+            ### Create master and Cert at installtion of Knox
+            ###
+            $cmd = "$knoxInstallToBin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET"
+            Invoke-CmdChk $cmd
 		}
 	  
  	     ### end of roles loop
