@@ -99,9 +99,10 @@ try
     Main $scriptDir
 }
 catch [Exception]
-	{
-		Write-Log $_.Exception.Message $_
-	}
+{
+    Write-Log $_.Exception.Message $_
+    throw $_.Exception.Message
+}
 finally
 {
     if( $apiModule -ne $null )

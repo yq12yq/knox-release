@@ -338,7 +338,20 @@ function Configure(
     {
         Write-Log "Configuring knox"
         New-Item -ItemType directory -Path "$ENV:knox_HOME\data\security\keystores" -ErrorAction Ignore
-
+        $xmlFile = "$ENV:knox_HOME\conf\topologies\myCluster.xml"
+        Copy-Item "$ENV:knox_HOME\conf\topologies\sandbox.xml" $xmlFile -Force
+		$knox_config = @{
+        "NAMENODE" = "hdfs://"+$ENV:NAMENODE_HOST+":8020";
+        "JOBTRACKER" = "rpc://"+$ENV:RESOURCEMANAGER_HOST+":8050";
+        "WEBHDFS" = "http://"+$ENV:NAMENODE_HOST+":50070/webhdfs";
+        "WEBHCAT" = "http://"+$ENV:WEBHCAT_HOST+":50111/templeton";
+        "OOZIE" = "http://"+$ENV:OOZIE_SERVER_HOST+":11000/oozie"; 
+        "HIVE" = "http://"+$ENV:HIVE_SERVER_HOST+":10001/cliservice"}
+		if (Test-Path ENV:HBASE_MASTER)
+        {
+            $knox_config.Add("WEBHBASE", "http://"+$ENV:HBASE_MASTER+":60080")
+        }
+        UpdateXmlConfig $xmlFile $knox_config
     }
     else
     {
@@ -460,6 +473,59 @@ function StopAndDeleteHadoopService(
         Invoke-Cmd $cmd
     }
 }
+
+### Helper routine that converts a $null object to nothing. Otherwise, iterating over
+### a $null object with foreach results in a loop with one $null element.
+function empty-null($obj)
+{
+   if ($obj -ne $null) { $obj }
+}
+
+### Helper routine that updates the given fileName XML file with the given
+### key/value configuration values. The XML file is expected to be in the
+### Hadoop format. For example:
+### <configuration>
+###   <property>
+###     <name.../><value.../>
+###   </property>
+### </configuration>
+function UpdateXmlConfig(
+    [string]
+    [parameter( Position=0, Mandatory=$true )]
+    $fileName, 
+    [hashtable]
+    [parameter( Position=1 )]
+    $config = @{} )
+{
+    $xml = New-Object System.Xml.XmlDocument
+    $xml.PreserveWhitespace = $true
+    $xml.Load($fileName)
+
+    foreach( $key in empty-null $config.Keys )
+    {
+        $value = $config[$key]
+        $found = $False
+        $xml.SelectNodes('/topology/service') | ? { $_.role -eq $key } | % { $_.url = $value; $found = $True }
+        if ( -not $found )
+        {
+            $newItem = $xml.CreateElement("property")
+            $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+            $newItem.AppendChild($xml.CreateElement("role")) | Out-Null
+            $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+            $newItem.AppendChild($xml.CreateElement("url")) | Out-Null
+            $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+            $newItem.name = $key
+            $newItem.value = $value
+            $xml["configuration"].AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+            $xml["configuration"].AppendChild($newItem) | Out-Null
+            $xml["configuration"].AppendChild($xml.CreateSignificantWhitespace("`r`n")) | Out-Null
+        }
+    }
+    
+    $xml.Save($fileName)
+    $xml.ReleasePath
+}
+
 
 ###
 ### Public API
