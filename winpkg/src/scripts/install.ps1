@@ -87,7 +87,7 @@ function Main( $scriptDir )
 	
     Write-Log "Roles are $roles"
     Install "knox" $nodeInstallRoot $serviceCredential $roles
-
+    Configure "knox" $nodeInstallRoot $serviceCredential 
     Write-Log "Installation of knox completed successfully"
 }
 
