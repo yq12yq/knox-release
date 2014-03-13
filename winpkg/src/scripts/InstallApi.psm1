@@ -336,7 +336,9 @@ function Configure(
     
     if ( $component -eq "knox" )
     {
-        Write-Log "Configure: knox does not have any configurations"
+        Write-Log "Configuring knox"
+        New-Item -ItemType directory -Path "$ENV:knox_HOME\data\security\keystores" -ErrorAction Ignore
+
     }
     else
     {
