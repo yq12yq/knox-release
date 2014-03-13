@@ -53,7 +53,7 @@ SET APP_ERR_FILE=%APP_LOG_DIR%\%APP_NAME%.err
 : main 
    ECHO "Starting %APP_LABEL% "
    
-    java %APP_MEM_OPTS% %APP_DBG_OPT% %APP_LOG_OPTS% -jar "%APP_JAR%"  %~1
+    java %APP_MEM_OPTS% %APP_DBG_OPT% %APP_LOG_OPTS% -jar "%APP_JAR%"  %*
 	
 	IF NOT %ERRORLEVEL% ==0 (
 		Exit /B 1
