@@ -138,11 +138,11 @@ function Install(
             ### Create master and Cert at installtion of Knox
             ###
             ### Create-master will create master key
-            $cmd = "$knoxInstallToBin\knoxcli.cmd `"create-master --master $ENV:KNOX_MASTER_SECRET --force`""
+            $cmd = "$knoxInstallToBin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET --force"
             Invoke-CmdChk $cmd
             
             ### Create-cert will create the keystore credentials as per the Knox host.
-            $cmd = "$knoxInstallToBin\knoxcli.cmd `"create-cert --hostname $ENV:KNOX_HOST`""
+            $cmd = "$knoxInstallToBin\knoxcli.cmd create-cert --hostname $ENV:KNOX_HOST"
             Invoke-CmdChk $cmd
 		}
 	  
