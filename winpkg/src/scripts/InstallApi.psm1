@@ -337,7 +337,6 @@ function Configure(
     if ( $component -eq "knox" )
     {
         Write-Log "Configuring knox"
-        New-Item -ItemType directory -Path "$ENV:knox_HOME\data\security\keystores" -ErrorAction SilentlyContinue
         $xmlFile = "$ENV:knox_HOME\conf\topologies\myCluster.xml"
         Copy-Item "$ENV:knox_HOME\conf\topologies\sandbox.xml" $xmlFile -Force
 		$knox_config = @{
