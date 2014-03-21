@@ -351,6 +351,22 @@ function Configure(
             $knox_config.Add("WEBHBASE", "http://"+$ENV:HBASE_MASTER+":60080")
         }
         UpdateXmlConfig $xmlFile $knox_config
+        Write-Log "Creating knox log dir"
+        $knoxLogsDir = Join-Path $ENV:HDP_LOG_DIR "knox"
+        ###
+        ### ACL Knox logs directory such that machine users can write to it
+        ###
+        if( -not (Test-Path "$knoxLogsDir"))
+        {
+            Write-Log "Creating Knox logs folder"
+            New-Item -Path "$knoxLogsDir" -type directory | Out-Null
+        }
+        GiveFullPermissions "$knoxLogsDir" "Users"
+        Write-Log "Changing *.properties"
+        $string = "app.log.dir=$knoxLogsDir".Replace("\","/")
+        ReplaceString "$ENV:KNOX_HOME\conf\gateway-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
+        ReplaceString "$ENV:KNOX_HOME\conf\knoxcli-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
+        ReplaceString "$ENV:KNOX_HOME\conf\ldap-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
     }
     else
     {
@@ -527,6 +543,19 @@ function UpdateXmlConfig(
     $xml.ReleasePath
 }
 
+### Helper routine that replaces string in file
+function ReplaceString($file,$find,$replace)
+{
+    $content = Get-Content $file
+    for ($i=1; $i -le $content.Count; $i++)
+    {
+        if ($content[$i] -like "*$find*")
+        {
+            $content[$i] = $content[$i].Replace($find, $replace)
+        }
+    }
+    Set-Content -Value $content -Path $file -Force
+}
 
 ###
 ### Public API
