@@ -82,7 +82,7 @@ function Main( $scriptDir )
     ### Install and Configure knox
     ###
     if ( $ENV:IS_knox -eq "yes" ) {
-      $roles = "gateway"
+      $roles = "gateway ldap"
     }
 	
     Write-Log "Roles are $roles"

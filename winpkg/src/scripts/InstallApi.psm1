@@ -129,7 +129,8 @@ function Install(
 		Write-Log "Node knox Role Services: $roles"
 
 		### Verify that roles are in the supported set	
-		CheckRole $roles @("gateway")
+		CheckRole $roles @("gateway", "ladp")
+
 		Write-Log "Role : $roles"
 		foreach( $service in empty-null ($roles -Split('\s+')))
 		{
@@ -191,7 +192,7 @@ function Uninstall(
 		
 		### Stop and delete services
         ###
-        foreach( $service in ("gateway"))
+        foreach( $service in ("gateway ladp"))
         {
             StopAndDeleteHadoopService $service
         }
@@ -238,7 +239,7 @@ function StartService(
     if ( $component -eq "knox" )
     {
         Write-Log "StartService: knox services"
-		CheckRole $roles @("gateway")
+		CheckRole $roles @("gateway", "ldap")
 
         foreach ( $role in $roles -Split("\s+") )
         {
@@ -275,7 +276,7 @@ function StopService(
     if ( $component -eq "knox" )
     {
         ### Verify that roles are in the supported set
-        CheckRole $roles @("gateway")
+        CheckRole $roles @("gateway", "ldap")
         foreach ( $role in $roles -Split("\s+") )
         {
             try
