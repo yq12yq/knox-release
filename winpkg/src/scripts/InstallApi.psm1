@@ -361,7 +361,7 @@ function Configure(
         "HIVE" = "http://"+$ENV:HIVE_SERVER_HOST+":10001/cliservice"}
 		if (Test-Path ENV:HBASE_MASTER)
         {
-            $knox_config.Add("WEBHBASE", "http://"+$ENV:HBASE_MASTER+":60080")
+            $knox_config.Add("WEBHBASE", "http://"+$ENV:HBASE_MASTER+":8080")
         }
         UpdateXmlConfig $xmlFile $knox_config
         Write-Log "Creating knox log dir"
