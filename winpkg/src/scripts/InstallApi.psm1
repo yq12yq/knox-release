@@ -129,7 +129,7 @@ function Install(
 		Write-Log "Node knox Role Services: $roles"
 
 		### Verify that roles are in the supported set	
-		CheckRole $roles @("gateway", "ladp")
+		CheckRole $roles @("gateway", "ldap")
 
         ###
         ### Create master and Cert at installtion of Knox
