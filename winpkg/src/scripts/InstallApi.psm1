@@ -131,25 +131,37 @@ function Install(
 		### Verify that roles are in the supported set	
 		CheckRole $roles @("gateway", "ladp")
 
-		Write-Log "Role : $roles"
-		foreach( $service in empty-null ($roles -Split('\s+')))
-		{
-			CreateAndConfigureHadoopService $service $HDP_RESOURCES_DIR $knoxInstallToBin $serviceCredential
-            ###
-            ### Create master and Cert at installtion of Knox
-            ###
-            ### Create-master will create master key
-            $cmd = "$knoxInstallToBin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET --force"
+        ###
+        ### Create master and Cert at installtion of Knox
+        ###
+
+        ### Create-master will create master key
+        $cmd = "$knoxInstallToBin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET --force"
+        Invoke-CmdChk $cmd
+
+        ### Create-cert will create the keystore credentials as per the Knox host.
+        $cmd = "$knoxInstallToBin\knoxcli.cmd create-cert --hostname $ENV:KNOX_HOST"
+        Invoke-CmdChk $cmd
+
+        Write-Log "Role : $roles"
+        foreach( $service in empty-null ($roles -Split('\s+')))
+        {
+            CreateAndConfigureHadoopService $service $HDP_RESOURCES_DIR $knoxInstallToBin $serviceCredential
+            $cmd="$ENV:WINDIR\system32\sc.exe config $service start= demand"
             Invoke-CmdChk $cmd
-            
-            ### Create-cert will create the keystore credentials as per the Knox host.
-            $cmd = "$knoxInstallToBin\knoxcli.cmd create-cert --hostname $ENV:KNOX_HOST"
+
+            ###
+            ### Setup knox service config
+            ###
+
+            Write-Log "Creating service config ${knoxInstallToBin}\$service.xml"
+            $cmd = "$knoxInstallToBin\$service.cmd --service > `"$knoxInstallToBin\$service.xml`""
             Invoke-CmdChk $cmd
-		}
-	  
- 	     ### end of roles loop
         }
-	    Write-Log "Finished installing Apache knox"
+
+        ### end of roles loop
+        }
+        Write-Log "Finished installing Apache knox"
     }
     else
     {
