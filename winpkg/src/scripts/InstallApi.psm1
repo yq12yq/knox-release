@@ -350,8 +350,7 @@ function Configure(
     if ( $component -eq "knox" )
     {
         Write-Log "Configuring knox"
-        $xmlFile = "$ENV:knox_HOME\conf\topologies\myCluster.xml"
-        Copy-Item "$ENV:knox_HOME\conf\topologies\sandbox.xml" $xmlFile -Force
+        $xmlFile = "$ENV:knox_HOME\conf\topologies\sandbox.xml"
 		$knox_config = @{
         "NAMENODE" = "hdfs://"+$ENV:NAMENODE_HOST+":8020";
         "JOBTRACKER" = "rpc://"+$ENV:RESOURCEMANAGER_HOST+":8050";
