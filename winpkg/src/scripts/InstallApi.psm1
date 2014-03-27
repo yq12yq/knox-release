@@ -204,7 +204,7 @@ function Uninstall(
 		
 		### Stop and delete services
         ###
-        foreach( $service in ("gateway ldap"))
+        foreach( $service in ("gateway", "ldap"))
         {
             StopAndDeleteHadoopService $service
         }
