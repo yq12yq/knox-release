@@ -131,18 +131,6 @@ function Install(
 		### Verify that roles are in the supported set	
 		CheckRole $roles @("gateway", "ldap")
 
-        ###
-        ### Create master and Cert at installtion of Knox
-        ###
-
-        ### Create-master will create master key
-        $cmd = "$knoxInstallToBin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET --force"
-        Invoke-CmdChk $cmd
-
-        ### Create-cert will create the keystore credentials as per the Knox host.
-        $cmd = "$knoxInstallToBin\knoxcli.cmd create-cert --hostname $ENV:KNOX_HOST"
-        Invoke-CmdChk $cmd
-
         Write-Log "Role : $roles"
         foreach( $service in empty-null ($roles -Split('\s+')))
         {
@@ -379,6 +367,20 @@ function Configure(
         ReplaceString "$ENV:KNOX_HOME\conf\gateway-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
         ReplaceString "$ENV:KNOX_HOME\conf\knoxcli-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
         ReplaceString "$ENV:KNOX_HOME\conf\ldap-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
+
+        ###
+        ### Create master and Cert at installtion of Knox
+        ###
+
+        ### Create-master will create master key
+        $cmd = "$ENV:KNOX_HOME\bin\knoxcli.cmd create-master --master $ENV:KNOX_MASTER_SECRET --force"
+        Write-log "Create-master command executed"
+        Invoke-CmdChk $cmd
+
+        ### Create-cert will create the keystore credentials as per the Knox host.
+        $cmd = "$ENV:KNOX_HOME\bin\knoxcli.cmd create-cert --hostname $ENV:KNOX_HOST"
+        Write-log "Create-cert command executed"
+        Invoke-CmdChk $cmd
     }
     else
     {
