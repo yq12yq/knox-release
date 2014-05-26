@@ -145,6 +145,19 @@ function Install(
             Write-Log "Creating service config ${knoxInstallToBin}\$service.xml"
             $cmd = "$knoxInstallToBin\$service.cmd --service > `"$knoxInstallToBin\$service.xml`""
             Invoke-CmdChk $cmd
+            if ($service -eq "gateway")
+            {
+                Write-Log "Renaming 'Apache Hadoop gateway' to 'Apache Hadoop Knox Gateway'"
+                $cmd="$ENV:WINDIR\system32\sc.exe config $service DisplayName= " +'"Apache Hadoop Knox Gateway"'
+                Invoke-CmdChk $cmd
+            }
+            elseif ($service -eq "ldap")
+            {
+                Write-Log "Renaming 'Apache Hadoop ldap' to 'Apache Hadoop Knox Test LDAP'"
+                $cmd="$ENV:WINDIR\system32\sc.exe config $service DisplayName= " +'"Apache Hadoop Knox Test LDAP"'
+                Invoke-CmdChk $cmd
+            }
+            
         }
 
         ### end of roles loop
