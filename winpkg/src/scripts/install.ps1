@@ -88,6 +88,7 @@ function Main( $scriptDir )
     Write-Log "Roles are $roles"
     Install "knox" $nodeInstallRoot $serviceCredential $roles
     Configure "knox" $nodeInstallRoot $serviceCredential
+    UpdateFQDNConfig "$ENV:KNOX_HOME\conf\topologies\sandbox.xml"
     Write-Log "Installation of knox completed successfully"
 }
 
