@@ -380,6 +380,11 @@ function Configure(
         ReplaceString "$ENV:KNOX_HOME\conf\gateway-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
         ReplaceString "$ENV:KNOX_HOME\conf\knoxcli-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
         ReplaceString "$ENV:KNOX_HOME\conf\ldap-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
+        if ((Test-Path ENV:IS_KNOX_HA) -and ($ENV:IS_KNOX_HA -eq "yes"))
+        {
+            Write-Log "Updating Knox topology with HA settings"
+            UpdateHAConfig "$ENV:KNOX_HOME\conf\topologies\sandbox.xml"
+        }
 
         ###
         ### Create master and Cert at installtion of Knox
@@ -727,6 +732,62 @@ function Get-FQDN( $name ) {
   $fqdn = $entry.HostName.ToLower()
   return $fqdn
 }
+
+function UpdateHAConfig(
+    [string]
+    [parameter( Position=0, Mandatory=$true )]
+    $fileName)
+{
+    $xml = New-Object System.Xml.XmlDocument
+    $xml.PreserveWhitespace = $true
+    $xml.Load($fileName)
+    $nodes = $xml.SelectSingleNode('/topology/gateway')
+     $newItem = $xml.CreateElement("provider")
+    $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+    $newItem.AppendChild($xml.CreateElement("role")) | Out-Null
+    $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+    $newItem.AppendChild($xml.CreateElement("name")) | Out-Null
+    $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+    $newItem.AppendChild($xml.CreateElement("enabled")) | Out-Null
+    $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+    $newItem.role = "ha"
+    $newItem.name = "HaProvider"
+    $newItem.enabled = "true"
+    $nodes.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+    $nodes.AppendChild($newItem) | Out-Null
+    $nodes.AppendChild($xml.CreateSignificantWhitespace("`r`n")) | Out-Null
+    $nodes = $xml.SelectNodes('/topology/gateway/provider')
+    foreach ($node in $nodes)
+    {
+        if ($node.role -eq "ha")
+        {
+            $newItem = $xml.CreateElement("param")
+            $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+            $newItem.AppendChild($xml.CreateElement("name")) | Out-Null
+            $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+            $newItem.AppendChild($xml.CreateElement("value")) | Out-Null
+            $newItem.name = "WEBHDFS"
+            $newItem.value = "maxFailoverAttempts=3;failoverSleep=1000;maxRetryAttempts=300;retrySleep=1000;enabled=true"
+            $node.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
+               $node.AppendChild($newItem) | Out-Null
+            $node.AppendChild($xml.CreateSignificantWhitespace("`r`n")) | Out-Null
+        }
+    }
+    $nodes = $xml.SelectNodes('/topology/service')
+    foreach ($node in $nodes)
+    {
+        if ($node.role -eq "WEBHDFS")
+        {
+            $newitem = $xml.CreateElement("url")
+            $newitem.InnerText = "http://" +$ENV:NN_HA_STANDBY_NAMENODE_HOST+":50070/webhdfs"
+            $node.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
+            $node.AppendChild($newitem) | Out-Null
+        }
+    }
+    $xml.Save($fileName)
+    $xml.ReleasePath
+}
+
 
 ###
 ### Public API
