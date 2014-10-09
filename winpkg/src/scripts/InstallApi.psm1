@@ -385,7 +385,8 @@ function Configure(
             Write-Log "Updating Knox topology with HA settings"
             UpdateHAConfig "$ENV:KNOX_HOME\conf\topologies\sandbox.xml"
         }
-
+           
+        UpdateFQDNConfig "$ENV:KNOX_HOME\conf\topologies\sandbox.xml"
         ###
         ### Create master and Cert at installtion of Knox
         ###
@@ -797,4 +798,3 @@ Export-ModuleMember -Function Uninstall
 Export-ModuleMember -Function Configure
 Export-ModuleMember -Function StartService
 Export-ModuleMember -Function StopService
-Export-ModuleMember -Function UpdateFQDNConfig
