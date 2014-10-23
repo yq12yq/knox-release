@@ -768,7 +768,7 @@ function UpdateHAConfig(
             $newItem.AppendChild($xml.CreateSignificantWhitespace("`r`n    ")) | Out-Null
             $newItem.AppendChild($xml.CreateElement("value")) | Out-Null
             $newItem.name = "WEBHDFS"
-            $newItem.value = "maxFailoverAttempts=3;failoverSleep=1000;maxRetryAttempts=300;retrySleep=1000;enabled=true"
+            $newItem.value = "maxFailoverAttempts=60;failoverSleep=1000;maxRetryAttempts=300;retrySleep=1000;enabled=true"
             $node.AppendChild($xml.CreateSignificantWhitespace("`r`n  ")) | Out-Null
                $node.AppendChild($newItem) | Out-Null
             $node.AppendChild($xml.CreateSignificantWhitespace("`r`n")) | Out-Null
