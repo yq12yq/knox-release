@@ -66,6 +66,9 @@ import java.util.Map;
  */
 public class GatewayConfigImpl extends Configuration implements GatewayConfig {
 
+  private static final String GATEWAY_DEFAULT_TOPOLOGY_NAME_PARAM = "default.app.topology.name";
+  private static final String GATEWAY_DEFAULT_TOPOLOGY_NAME = "sandbox";
+
   private static GatewayMessages log = MessagesFactory.get( GatewayMessages.class );
 
   private static final String GATEWAY_CONFIG_DIR_PREFIX = "conf";
