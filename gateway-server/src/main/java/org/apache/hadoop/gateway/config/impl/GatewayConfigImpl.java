@@ -28,6 +28,8 @@ import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -100,6 +102,7 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   public static final String DEFAULT_HTTP_PATH = "gateway";
   public static final String DEFAULT_DEPLOYMENT_DIR = "deployments";
   private static final String SSL_ENABLED = "ssl.enabled";
+  private static final String SSL_EXCLUDE_PROTOCOLS = "ssl.exclude.protocols";
 //  public static final String DEFAULT_SHIRO_CONFIG_FILE = "shiro.ini";
   
   public GatewayConfigImpl() {
@@ -311,6 +314,36 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   @Override
   public String getKerberosLoginConfig() {
     return get( KRB5_LOGIN_CONFIG );
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getDefaultTopologyName()
+   */
+  @Override
+  public String getDefaultTopologyName() {
+    String name = get(GATEWAY_DEFAULT_TOPOLOGY_NAME_PARAM);
+    return name != null ? name : GATEWAY_DEFAULT_TOPOLOGY_NAME;
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getDefaultAppRedirectPath()
+   */
+  @Override
+  public String getDefaultAppRedirectPath() {
+    return "/" + getGatewayPath() + "/" + getDefaultTopologyName();
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getExcludedSSLProtocols()
+   */
+  @Override
+  public List<String> getExcludedSSLProtocols() {
+    List<String> protocols = null;
+    String value = get(SSL_EXCLUDE_PROTOCOLS);
+    if (!"none".equals(value)) {
+      protocols = Arrays.asList(value.split("\\s*,\\s*"));
+    }
+    return protocols;
   }
   
 }

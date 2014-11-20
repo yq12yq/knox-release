@@ -21,6 +21,8 @@ import org.apache.hadoop.gateway.config.GatewayConfig;
 
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GatewayTestConfig implements GatewayConfig {
 
@@ -144,6 +146,33 @@ public class GatewayTestConfig implements GatewayConfig {
   @Override
   public String getKerberosLoginConfig() {
     return kerberosLoginConfig;
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getDefaultTopologyName()
+   */
+  @Override
+  public String getDefaultTopologyName() {
+    return "default";
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getDefaultAppRedirectPath()
+   */
+  @Override
+  public String getDefaultAppRedirectPath() {
+    // TODO Auto-generated method stub
+    return "/gateway/sandbox";
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getExcludedSSLProtocols()
+   */
+  @Override
+  public List getExcludedSSLProtocols() {
+    List<String> protocols = new ArrayList<String>();
+    protocols.add("SSLv3");
+    return protocols;
   }
   
 //  public void setKerberosLoginConfig(String kerberosLoginConfig) {
