@@ -352,14 +352,15 @@ function Configure(
     {
         Write-Log "Configuring knox"
         $xmlFile = "$ENV:knox_HOME\conf\topologies\sandbox.xml"
-		$knox_config = @{
-        "NAMENODE" = "hdfs://"+$ENV:NAMENODE_HOST+":8020";
-        "JOBTRACKER" = "rpc://"+$ENV:RESOURCEMANAGER_HOST+":8032";
-        "WEBHDFS" = "http://"+$ENV:NAMENODE_HOST+":50070/webhdfs";
-        "WEBHCAT" = "http://"+$ENV:WEBHCAT_HOST+":50111/templeton";
-        "OOZIE" = "http://"+$ENV:OOZIE_SERVER_HOST+":11000/oozie";
-        "HIVE" = "http://"+$ENV:HIVE_SERVER_HOST+":10001/cliservice"}
-		if (Test-Path ENV:HBASE_MASTER)
+        $knox_config = @{
+            "NAMENODE" = "hdfs://"+$ENV:NAMENODE_HOST+":8020";
+            "JOBTRACKER" = "rpc://"+$ENV:RESOURCEMANAGER_HOST+":8032";
+            "RESOURCEMANAGER" = "http://"+$ENV:RESOURCEMANAGER_HOST+":8088/ws";
+            "WEBHDFS" = "http://"+$ENV:NAMENODE_HOST+":50070/webhdfs";
+            "WEBHCAT" = "http://"+$ENV:WEBHCAT_HOST+":50111/templeton";
+            "OOZIE" = "http://"+$ENV:OOZIE_SERVER_HOST+":11000/oozie";
+            "HIVE" = "http://"+$ENV:HIVE_SERVER_HOST+":10001/cliservice"}
+        if (Test-Path ENV:HBASE_MASTER)
         {
             $knox_config.Add("WEBHBASE", "http://"+$ENV:HBASE_MASTER+":8080")
         }
