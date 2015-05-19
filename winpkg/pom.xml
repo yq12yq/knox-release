@@ -32,7 +32,7 @@
 
     <profiles>
         <profile>
-            <id>windows</id>
+            <id>windows></id>
             <modules>
                 <module>winpkg</module>
             </modules>
