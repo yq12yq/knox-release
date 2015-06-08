@@ -22,6 +22,7 @@ import org.apache.hadoop.gateway.i18n.messages.Message;
 import org.apache.hadoop.gateway.i18n.messages.MessageLevel;
 import org.apache.hadoop.gateway.i18n.messages.Messages;
 import org.apache.hadoop.gateway.i18n.messages.StackTrace;
+import org.apache.hadoop.gateway.services.security.AliasServiceException;
 import org.apache.hadoop.gateway.services.security.KeystoreServiceException;
 import org.apache.hadoop.gateway.util.urltemplate.Template;
 
@@ -370,4 +371,9 @@ public interface GatewayMessages {
   @Message( level = MessageLevel.DEBUG, text = "Added Service definition name: {0}, role : {1}, version : {2}" )
   void addedServiceDefinition(String serviceName, String serviceRole, String version);
 
+  @Message( level = MessageLevel.INFO, text = "System Property: {0}={1}" )
+  void logSysProp( String name, String property );
+
+  @Message( level = MessageLevel.ERROR, text = "Unable to get password: {0}" )
+  void unableToGetPassword(@StackTrace( level = MessageLevel.DEBUG ) Exception e);
 }
