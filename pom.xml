@@ -211,6 +211,7 @@
                         <exclude>**/candidate/**</exclude>
                         <exclude>**/patch/**</exclude>
                         <exclude>**/CHANGES</exclude>
+                        <exclude>**/HDP-CHANGES</exclude>
                         <exclude>**/ISSUES</exclude>
                         <exclude>**/patchprocess/**</exclude>
                         <exclude>**/test/resources/**</exclude>
