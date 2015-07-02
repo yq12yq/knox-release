@@ -1,0 +1,14 @@
+Changes only in Hortonworks github and not in hadoop-2.7.0 and hence not covered by CHANGES.txt.
+
+  BUG FIXES
+  
+    KNOX-476 implementation for X-Forwarded-* headers support and population (Sumit Gupta)
+    Fixed version number of new module gateway-server-xforwarded-filter (Sumit Gupta)
+    KNOX-546 Consuming intermediate response during kerberos request dispatching (Sumit Gupta)
+    KNOX-550 reverting back to original hive kerberos dispatch behavior (Sumit Gupta)
+    KNOX-558: HttpClient connections are not always returned to the pool for HBase on Windows (Kevin Minder)
+    KNOX-559 renaming service definition files (Sumit Gupta)
+    
+  IMPROVEMENTS
+    KNOX-561: Allow Knox pid directory to be configured via the knox-env.sh file (Kevin Minder)
+    KNOX-545 - Simplify Keystore Management for Cluster Scaleout (Larry McCay)
