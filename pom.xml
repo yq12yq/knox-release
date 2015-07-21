@@ -83,6 +83,7 @@
         <module>gateway-test</module>
         <module>hsso-release</module>
         <module>gateway-service-vault</module>
+        <module>gateway-service-test</module>
     </modules>
 
     <properties>
@@ -556,6 +557,11 @@
             <dependency>
                 <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-service-admin</artifactId>
+                <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${gateway-group}</groupId>
+                <artifactId>gateway-service-test</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
             <dependency>
