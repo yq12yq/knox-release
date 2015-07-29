@@ -23,7 +23,7 @@
 ###
 $ScriptDir = Resolve-Path (Split-Path $MyInvocation.MyCommand.Path)
 
-$FinalName = "knox-@knox.version@"
+$FinalName = "knox-0.5.0"
 
 ###############################################################################
 ###
