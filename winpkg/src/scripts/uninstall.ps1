@@ -16,7 +16,7 @@
 
 function Main( $scriptDir )
 {
-    Write-Log "Uninstalling Apache knox knox-0.5.0"
+    Write-Log "Uninstalling Apache knox knox-@knox.version@"
     Uninstall "knox" $ENV:HADOOP_NODE_INSTALL_ROOT
     Write-Log "Finished Uninstalling Apache knox"
 }
