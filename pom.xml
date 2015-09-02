@@ -224,7 +224,7 @@
                         <exclude>**/install/**</exclude>
                         <exclude>**/candidate/**</exclude>
                         <exclude>**/patch/**</exclude>
-                        <exclude>**/CHANGES</exclude>
+                        <exclude>**/*CHANGES</exclude>
                         <exclude>**/ISSUES</exclude>
                         <exclude>**/patchprocess/**</exclude>
                         <exclude>**/test/resources/**</exclude>
