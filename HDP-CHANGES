@@ -1,0 +1,21 @@
+-----------------------------------------------------------------------------------------
+Changes only in Hortonworks github and not in Knox 0.5.0 and hence not covered by CHANGES
+-----------------------------------------------------------------------------------------
+** BUG FIXES
+    * KNOX-529 - Fix wildcard based principal group mapping
+    * KNOX-467: Unit tests failing on windows
+    * KNOX-459 - added null checks to the closing of resultEnums to avoid NPEs
+    * KNOX-465: Initial audit record can contain leftover principal name
+    * KNOX-459 - fixed LDAP connection leaks in KnoxLdapRealm
+    * KNOX-464: Location headers have wrong hostname when used behind load balancer
+
+** IMPROVMENTS
+    * KNOX-504 - Enable SSL Mutual Authentication
+    * KNOX-521 - Enhance Principal Mapping to Handle Dynamic Mappings
+    * KNOX-492: Support service level replayBufferLimit for Ozzie, Hive and HBase.
+    * KNOX-491: Increase default replay buffer size to 8K
+    * KNOX-473: Configurable front end URL for simplified load balancer configuration
+    * KNOX-470 - add README and site docs for samples
+    * KNOX-468 update group lookup topologies to configure cache manager
+    * KNOX-469 Bring CHANGES and ISSUES up to date
+    * KNOX-466: Log exception stack traces at INFO level when they reach gateway servlet
