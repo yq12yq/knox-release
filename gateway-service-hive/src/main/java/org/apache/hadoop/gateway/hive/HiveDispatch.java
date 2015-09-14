@@ -19,6 +19,7 @@ package org.apache.hadoop.gateway.hive;
 
 import org.apache.hadoop.gateway.config.Configure;
 import org.apache.hadoop.gateway.dispatch.DefaultDispatch;
+import org.apache.hadoop.gateway.dispatch.KnoxSpnegoAuthSchemeFactory;
 import org.apache.hadoop.gateway.security.PrimaryPrincipal;
 import org.apache.hadoop.gateway.security.SubjectUtils;
 import org.apache.http.HttpResponse;
@@ -86,8 +87,8 @@ public class HiveDispatch extends DefaultDispatch {
   protected HttpResponse executeKerberosDispatch(HttpUriRequest outboundRequest,
       HttpClient httpClient) throws IOException {
     DefaultHttpClient client = new DefaultHttpClient();
-    SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(
-          /* stripPort */true);
+    SPNegoSchemeFactory spNegoSF = new KnoxSpnegoAuthSchemeFactory(/*stripPort*/true);
+    //SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(/*stripPort*/true);
     // spNegoSF.setSpengoGenerator(new BouncySpnegoTokenGenerator());
     client.getAuthSchemes().register(AuthPolicy.SPNEGO, spNegoSF);
     client.getCredentialsProvider().setCredentials(

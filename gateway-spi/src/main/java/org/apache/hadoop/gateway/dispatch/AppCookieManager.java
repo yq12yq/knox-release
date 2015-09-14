@@ -103,8 +103,8 @@ public class AppCookieManager {
     }
 
     DefaultHttpClient client = new DefaultHttpClient();
-    SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(
-    /* stripPort */true);
+    SPNegoSchemeFactory spNegoSF = new KnoxSpnegoAuthSchemeFactory( /*stripPort*/ true );
+    //SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(/* stripPort */true);
     // spNegoSF.setSpengoGenerator(new BouncySpnegoTokenGenerator());
     client.getAuthSchemes().register(AuthPolicy.SPNEGO, spNegoSF);
     client.getCredentialsProvider().setCredentials(

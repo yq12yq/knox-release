@@ -8,6 +8,7 @@ Changes only in Hortonworks github and not in hadoop-2.7.0 and hence not covered
     KNOX-550 reverting back to original hive kerberos dispatch behavior (Sumit Gupta)
     KNOX-558: HttpClient connections are not always returned to the pool for HBase on Windows (Kevin Minder)
     KNOX-559 renaming service definition files (Sumit Gupta)
+    KNOX-598: Concurrent JDBC clients via KNOX to Kerberized HiveServer2 causes HTTP 401 error (due to Kerberos Replay attack error)
     
   IMPROVEMENTS
     KNOX-561: Allow Knox pid directory to be configured via the knox-env.sh file (Kevin Minder)
