@@ -8,6 +8,7 @@ Changes only in Hortonworks github and not in Knox 0.5.0 and hence not covered b
     * KNOX-465: Initial audit record can contain leftover principal name
     * KNOX-459 - fixed LDAP connection leaks in KnoxLdapRealm
     * KNOX-464: Location headers have wrong hostname when used behind load balancer
+    * KNOX-598: Concurrent JDBC clients via KNOX to Kerberized HiveServer2 causes HTTP 401 error (due to Kerberos Replay attack error)
 
 ** IMPROVMENTS
     * KNOX-504 - Enable SSL Mutual Authentication
