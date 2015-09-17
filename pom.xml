@@ -198,6 +198,7 @@
                         <exclude>**/install/**</exclude>
                         <exclude>**/candidate/**</exclude>
                         <exclude>**/patch/**</exclude>
+                        <exclude>**/HDP-CHANGES</exclude>
                         <exclude>**/CHANGES</exclude>
                         <exclude>**/ISSUES</exclude>
                         <exclude>**/patchprocess/**</exclude>
