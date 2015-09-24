@@ -1265,6 +1265,10 @@ public class ParserTest {
     template = Parser.parse( "*://*:*/**/webhdfs/v1/{path=**}?{**}" );
     matcher.add( template, "test-value" );
 
+    input = Parser.parse( "http://host:42/path?param=" );
+
+    assertThat( input.getQuery().get( "param" ).getFirstValue().getPattern(), is( "" ) );
+
     input = Parser.parse( "http://kminder-os-u14-23-knoxha-150922-1352-2.novalocal:1022/gateway/sandbox/webhdfs/v1/user/hrt_qa/knox-ha/knox_webhdfs_client_dir/test_file?op=CREATE&delegation=XXX&namenoderpcaddress=nameservice&createflag=&createparent=true&overwrite=true" );
 
     assertThat( input.getQuery().get( "createflag" ).getFirstValue().getPattern(), is( "" ) );
