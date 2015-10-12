@@ -21,6 +21,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.gateway.SpiGatewayMessages;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.apache.hadoop.gateway.util.HttpUtils;
 
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
@@ -86,7 +87,7 @@ public class IdentityAsserterHttpServletRequestWrapper extends HttpServletReques
     Map<String, String[]> params = null;
     if (getMethod().equals("GET")) {
       if (qString != null && qString.length() > 0) {
-        params = parseQueryString(qString);
+        params = HttpUtils.parseQueryString( qString );
       }
       else {
         params = new HashMap<String, String[]>();
@@ -97,7 +98,7 @@ public class IdentityAsserterHttpServletRequestWrapper extends HttpServletReques
         return null;
       }
       else {
-        params = parseQueryString(qString);
+        params = HttpUtils.parseQueryString( qString );
       }
     }  
     return params;
@@ -204,11 +205,6 @@ public class IdentityAsserterHttpServletRequestWrapper extends HttpServletReques
     return sb.toString();
   }
 
-  @SuppressWarnings({ "deprecation", "unchecked" })
-  private static Map<String,String[]> parseQueryString( String queryString ) {
-    return javax.servlet.http.HttpUtils.parseQueryString( queryString );
-  }
-  
   private class ServletInputStreamWrapper extends ServletInputStream {
 
     private InputStream stream;
