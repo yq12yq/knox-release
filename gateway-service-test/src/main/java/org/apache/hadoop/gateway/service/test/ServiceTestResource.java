@@ -210,7 +210,7 @@ public class ServiceTestResource {
     return fullURLs;
   }
 
-  private String buildXForwardBaseURL(HttpServletRequest req){
+  static String buildXForwardBaseURL(HttpServletRequest req){
     final String X_Forwarded = "X-Forwarded-";
     final String X_Forwarded_Context = X_Forwarded + "Context";
     final String X_Forwarded_Proto = X_Forwarded + "Proto";
@@ -224,7 +224,7 @@ public class ServiceTestResource {
     if(req.getHeader(X_Forwarded_Proto) != null){
       baseURL += req.getHeader(X_Forwarded_Proto) + "://";
     } else {
-      baseURL += req.getProtocol() + "://";
+      baseURL += req.getScheme() + "://";
     }
 
 //    Handle Server/Host and Port Here
