@@ -375,7 +375,7 @@ function Configure(
             Write-Log "Creating Knox logs folder"
             New-Item -Path "$knoxLogsDir" -type directory | Out-Null
         }
-        GiveFullPermissions "$knoxLogsDir" "Users"
+        GiveFullPermissions "$knoxLogsDir" "*S-1-5-32-545"
         Write-Log "Changing *.properties"
         $string = "app.log.dir=$knoxLogsDir".Replace("\","/")
         ReplaceString "$ENV:KNOX_HOME\conf\gateway-log4j.properties" 'app.log.dir=${launcher.dir}/../logs' $string
