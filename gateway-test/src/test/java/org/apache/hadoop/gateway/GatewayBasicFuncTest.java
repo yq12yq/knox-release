@@ -3421,7 +3421,7 @@ public class GatewayBasicFuncTest {
     MatcherAssert.assertThat(location, not(containsString("port=")));
   }
 
-  //@Test
+  @Test
   public void testServiceTestAPI() throws Exception {
 
     String user = "kminder";
