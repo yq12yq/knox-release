@@ -15,29 +15,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.gateway.hbase;
+package org.apache.hadoop.gateway.hive;
 
-import org.apache.hadoop.gateway.dispatch.AppCookieManager;
-import org.apache.http.HttpRequest;
-import org.apache.http.client.methods.HttpGet;
+import org.apache.hadoop.gateway.config.Configure;
+import org.apache.hadoop.gateway.ha.dispatch.DefaultHaDispatch;
 import org.apache.http.client.methods.HttpUriRequest;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 
-public class HBaseCookieManager extends AppCookieManager {
+public class HiveHaDispatch extends DefaultHaDispatch {
 
-  protected HttpRequest createKerberosAuthenticationRequest( HttpUriRequest userRequest ) {
-    URI userUri = userRequest.getURI();
-    try {
-      URI authUri = new URI(
-          userUri.getScheme(), null, userUri.getHost(), userUri.getPort(),
-          "/version", userUri.getQuery(), null );
-      HttpRequest authRequest = new HttpGet( authUri );
-      return authRequest;
-    } catch( URISyntaxException e ) {
-      throw new IllegalArgumentException( userUri.toString(), e );
+  private boolean basicAuthPreemptive = false;
+
+  public HiveHaDispatch() {
+    setServiceRole("HIVE");
+  }
+
+  protected void addCredentialsToRequest(HttpUriRequest request) {
+    if ( isBasicAuthPreemptive() ) {
+      HiveDispatchUtils.addCredentialsToRequest(request);
     }
   }
 
+  @Configure
+  public void setBasicAuthPreemptive(boolean basicAuthPreemptive) {
+    this.basicAuthPreemptive = basicAuthPreemptive;
+  }
+
+  public boolean isBasicAuthPreemptive() {
+    return basicAuthPreemptive;
+  }
 }

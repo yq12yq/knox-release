@@ -15,23 +15,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.gateway.filter;
+package org.apache.hadoop.gateway.dispatch;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.BasicCookieStore;
 
-/**
- *
- */
-//TODO: Implement the trace filter.
-public class TraceFilter extends AbstractGatewayFilter {
+public class HadoopAuthCookieStore extends BasicCookieStore {
 
   @Override
-  public void doFilter( HttpServletRequest request, HttpServletResponse response, FilterChain chain ) throws IOException, ServletException {
-    chain.doFilter( request, response );
+  public void addCookie(Cookie cookie) {
+    if (cookie.getName().equals("hadoop.auth")) {
+      super.addCookie(cookie);
+    }
   }
-
 }

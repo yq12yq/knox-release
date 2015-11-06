@@ -22,6 +22,7 @@ import org.apache.hadoop.gateway.i18n.messages.Message;
 import org.apache.hadoop.gateway.i18n.messages.MessageLevel;
 import org.apache.hadoop.gateway.i18n.messages.Messages;
 import org.apache.hadoop.gateway.i18n.messages.StackTrace;
+import org.apache.hadoop.gateway.services.security.AliasServiceException;
 import org.apache.hadoop.gateway.services.security.KeystoreServiceException;
 import org.apache.hadoop.gateway.util.urltemplate.Template;
 
@@ -331,6 +332,24 @@ public interface GatewayMessages {
   @Message( level = MessageLevel.INFO, text = "Computed roles/groups: {0} for principal: {1}" )
   void lookedUpUserRoles(Set<String> roleNames, String userName);
 
+  @Message( level = MessageLevel.DEBUG, text = "Initialize provider: {1}/{0}" )
+  void initializeProvider( String name, String role );
+
+  @Message( level = MessageLevel.DEBUG, text = "Initialize service: {1}/{0}" )
+  void initializeService( String name, String role );
+
+  @Message( level = MessageLevel.DEBUG, text = "Contribute provider: {1}/{0}" )
+  void contributeProvider( String name, String role );
+
+  @Message( level = MessageLevel.DEBUG, text = "Contribute service: {1}/{0}" )
+  void contributeService( String name, String role );
+
+  @Message( level = MessageLevel.DEBUG, text = "Finalize provider: {1}/{0}" )
+  void finalizeProvider( String name, String role );
+
+  @Message( level = MessageLevel.DEBUG, text = "Finalize service: {1}/{0}" )
+  void finalizeService( String name, String role );
+
   @Message( level = MessageLevel.INFO, text = "Configured services directory is {0}" )
   void usingServicesDirectory(String path);
 
@@ -352,4 +371,9 @@ public interface GatewayMessages {
   @Message( level = MessageLevel.DEBUG, text = "Added Service definition name: {0}, role : {1}, version : {2}" )
   void addedServiceDefinition(String serviceName, String serviceRole, String version);
 
+  @Message( level = MessageLevel.INFO, text = "System Property: {0}={1}" )
+  void logSysProp( String name, String property );
+
+  @Message( level = MessageLevel.ERROR, text = "Unable to get password: {0}" )
+  void unableToGetPassword(@StackTrace( level = MessageLevel.DEBUG ) Exception e);
 }

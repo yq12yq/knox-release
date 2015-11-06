@@ -37,6 +37,8 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +50,9 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
+import java.util.zip.ZipException;
 
 import static org.apache.hadoop.gateway.filter.rewrite.impl.UrlRewriteUtil.getRewriteFilterConfig;
 import static org.apache.hadoop.gateway.filter.rewrite.impl.UrlRewriteUtil.pickFirstRuleWithEqualsIgnoreCasePathMatch;
@@ -59,7 +64,9 @@ public class UrlRewriteResponse extends GatewayResponseWrapper implements Params
 
   private static final UrlRewriteMessages LOG = MessagesFactory.get( UrlRewriteMessages.class );
 
-  private static final int STREAM_BUFFER_SIZE = 4096;
+  // An 8K buffer better matches the underlying buffer sizes.
+  // Testing with 16K made no appreciable difference.
+  private static final int STREAM_BUFFER_SIZE = 8 * 1024;
 
   private static final Set<String> IGNORE_HEADER_NAMES = new HashSet<String>();
   static {
@@ -106,7 +113,7 @@ public class UrlRewriteResponse extends GatewayResponseWrapper implements Params
 
   private String rewriteValue( String value, String rule ) {
     try {
-      Template input = Parser.parse( value );
+      Template input = Parser.parseLiteral( value );
       Template output = rewriter.rewrite( this, input, UrlRewriter.Direction.OUT, rule );
       if( output != null ) {
         value = output.getPattern();
@@ -143,13 +150,33 @@ public class UrlRewriteResponse extends GatewayResponseWrapper implements Params
 
   @Override
   public void streamResponse( InputStream input, OutputStream output ) throws IOException {
+    InputStream inStream;
+    OutputStream outStream;
+    boolean isGzip = false;
+    BufferedInputStream inBuffer = new BufferedInputStream(input);
+    try {
+      // Use this way to check whether the input stream is gzip compressed, in case
+      // the content encoding header is unknown, as it could be unset in inbound response
+      inBuffer.mark(STREAM_BUFFER_SIZE);
+      inStream = new GZIPInputStream(inBuffer);
+      isGzip = true;
+    } catch (ZipException e) {
+      inBuffer.reset();
+      inStream = inBuffer;
+    } catch (IOException e) {
+      inBuffer.reset();
+      inStream = inBuffer;
+    }
+
     MimeType mimeType = getMimeType();
     UrlRewriteFilterContentDescriptor filterContentConfig =
         getRewriteFilterConfig( rewriter.getConfig(), bodyFilterName, mimeType );
     InputStream filteredInput = UrlRewriteStreamFilterFactory.create(
-        mimeType, null, input, rewriter, this, UrlRewriter.Direction.OUT, filterContentConfig );
-    IOUtils.copyBytes( filteredInput, output, STREAM_BUFFER_SIZE );
-    output.close();
+        mimeType, null, inStream, rewriter, this, UrlRewriter.Direction.OUT, filterContentConfig );
+    outStream = (isGzip) ? new GZIPOutputStream(output) : output;
+    IOUtils.copyBytes( filteredInput, outStream, STREAM_BUFFER_SIZE );
+    outStream.flush();
+    outStream.close();
   }
 
   //TODO: Need to buffer the output here and when it is closed, rewrite it and then write the result to the stream.

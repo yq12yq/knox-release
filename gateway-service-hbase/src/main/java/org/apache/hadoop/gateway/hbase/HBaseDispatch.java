@@ -20,16 +20,11 @@ package org.apache.hadoop.gateway.hbase;
 import org.apache.hadoop.gateway.dispatch.DefaultDispatch;
 
 /**
- * This specialized dispatch provides HBase specific features to the
- * default HttpClientDispatch.
+ * This used to be a specialized dispatch providing HBase specific features to the
+ * default dispatch. Now it is just a marker class for backwards compatibility
  */
+@Deprecated
 public class HBaseDispatch extends DefaultDispatch {
-
-  @Override
-  public void init() {
-    super.init();
-    setAppCookieManager(new HBaseCookieManager());
-  }
 
 }
 

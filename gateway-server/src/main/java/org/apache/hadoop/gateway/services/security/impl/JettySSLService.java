@@ -32,6 +32,7 @@ import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
 import org.apache.hadoop.gateway.services.security.AliasService;
+import org.apache.hadoop.gateway.services.security.AliasServiceException;
 import org.apache.hadoop.gateway.services.security.KeystoreService;
 import org.apache.hadoop.gateway.services.security.KeystoreServiceException;
 import org.apache.hadoop.gateway.services.security.MasterService;
@@ -42,11 +43,11 @@ import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 public class JettySSLService implements SSLService {
-  private static final String GATEWAY_IDENTITY_PASSPHRASE = "gateway-identity-passphrase";
+  private static final String EPHEMERAL_DH_KEY_SIZE_PROPERTY = "jdk.tls.ephemeralDHKeySize";
   private static final String GATEWAY_TRUSTSTORE_PASSWORD = "gateway-truststore-password";
   private static final String GATEWAY_CREDENTIAL_STORE_NAME = "__gateway";
   private static GatewayMessages log = MessagesFactory.get( GatewayMessages.class );
-  
+
   private MasterService ms;
   private KeystoreService ks;
   private AliasService as;
@@ -73,6 +74,8 @@ public class JettySSLService implements SSLService {
   @Override
   public void init(GatewayConfig config, Map<String, String> options)
       throws ServiceLifecycleException {
+    // set any JSSE or security related system properties
+    System.setProperty(EPHEMERAL_DH_KEY_SIZE_PROPERTY, config.getEphemeralDHKeySize());
     try {
       if (!ks.isCredentialStoreForClusterAvailable(GATEWAY_CREDENTIAL_STORE_NAME)) {
         log.creatingCredentialStoreForGateway();
@@ -93,7 +96,12 @@ public class JettySSLService implements SSLService {
       if (!ks.isKeystoreForGatewayAvailable()) {
         log.creatingKeyStoreForGateway();
         ks.createKeystoreForGateway();
-        char[] passphrase = as.getPasswordFromAliasForCluster(GATEWAY_CREDENTIAL_STORE_NAME, GATEWAY_IDENTITY_PASSPHRASE);
+        char[] passphrase = null;
+        try {
+          passphrase = as.getGatewayIdentityPassphrase();
+        } catch (AliasServiceException e) {
+          throw new ServiceLifecycleException("Error accessing credential store for the gateway.", e);
+        }
         if (passphrase == null) {
           passphrase = ms.getMasterSecret();
         }
@@ -117,7 +125,12 @@ public class JettySSLService implements SSLService {
 
   private void logAndValidateCertificate() throws ServiceLifecycleException {
     // let's log the hostname (CN) and cert expiry from the gateway's public cert to aid in SSL debugging
-    Certificate cert = as.getCertificateForGateway("gateway-identity");
+    Certificate cert;
+    try {
+      cert = as.getCertificateForGateway("gateway-identity");
+    } catch (AliasServiceException e) {
+      throw new ServiceLifecycleException("Cannot Retreive Gateway SSL Certificate. Server will not start.", e);
+    }
     if (cert != null) {
       if (cert instanceof X509Certificate) {
         X500Principal x500Principal = ((X509Certificate)cert).getSubjectX500Principal();
@@ -152,7 +165,12 @@ public class JettySSLService implements SSLService {
     sslContextFactory.setKeyStorePath(keystoreFileName);
     char[] master = ms.getMasterSecret();
     sslContextFactory.setKeyStorePassword(new String(master));
-    char[] keypass = as.getPasswordFromAliasForGateway(GATEWAY_IDENTITY_PASSPHRASE);
+    char[] keypass = null;
+    try {
+      keypass = as.getGatewayIdentityPassphrase();
+    } catch (AliasServiceException e) {
+      // nop - default passphrase will be used
+    }
     if (keypass == null) {
       // there has been no alias created for the key - let's assume it is the same as the keystore password
       keypass = master;
@@ -163,7 +181,12 @@ public class JettySSLService implements SSLService {
     if (clientAuthNeeded) {
       if (truststorePath != null) {
         sslContextFactory.setTrustStore(truststorePath);
-        char[] truststorePwd = as.getPasswordFromAliasForGateway(GATEWAY_TRUSTSTORE_PASSWORD);
+        char[] truststorePwd = null;
+        try {
+          truststorePwd = as.getPasswordFromAliasForGateway(GATEWAY_TRUSTSTORE_PASSWORD);
+        } catch (AliasServiceException e) {
+          // nop - master secret will be used
+        }
         if (truststorePwd != null) {
           truststorePassword = new String(truststorePwd);
         }
@@ -189,7 +212,7 @@ public class JettySSLService implements SSLService {
     SslConnector sslConnector = new SslSelectChannelConnector( sslContextFactory );
 
     return sslConnector;
-  }  
+  }
   
   @Override
   public void start() throws ServiceLifecycleException {

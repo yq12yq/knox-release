@@ -102,7 +102,7 @@ public class GatewayFilter implements Filter {
 
     Template pathTemplate;
     try {
-      pathTemplate = Parser.parse( path );
+      pathTemplate = Parser.parseLiteral( path );
     } catch( URISyntaxException e ) {
       throw new ServletException( e );
     }
@@ -120,7 +120,7 @@ public class GatewayFilter implements Filter {
     auditContext.setTargetServiceName( match == null ? null : match.getValue().getResourceRole() );
     auditContext.setRemoteIp( servletRequest.getRemoteAddr() );
     auditContext.setRemoteHostname( servletRequest.getRemoteHost() );
-    auditor.audit( Action.ACCESS, pathWithContext, ResourceType.URI, ActionOutcome.UNAVAILABLE );
+    auditor.audit( Action.ACCESS, pathWithContext, ResourceType.URI, ActionOutcome.UNAVAILABLE, RES.requestMethod(((HttpServletRequest)servletRequest).getMethod()));
     
     if( match != null ) {
       Chain chain = match.getValue();
@@ -189,10 +189,17 @@ public class GatewayFilter implements Filter {
     Holder holder = new Holder( path, name, clazz, params, resourceRole );
     addHolder( holder );
   }
-  
+
+  // Now creating the correlation context only if required since it may be created upstream in the CorrelationHandler.
   private void assignCorrelationRequestId() {
-    CorrelationContext correlationContext = CorrelationServiceFactory.getCorrelationService().createContext();
-    correlationContext.setRequestId( UUID.randomUUID().toString() );
+    CorrelationContext correlationContext = CorrelationServiceFactory.getCorrelationService().getContext();
+    if( correlationContext == null ) {
+      correlationContext = CorrelationServiceFactory.getCorrelationService().createContext();
+    }
+    String requestId = correlationContext.getRequestId();
+    if( requestId == null ) {
+      correlationContext.setRequestId( UUID.randomUUID().toString() );
+    }
   }
 
   private class Chain implements FilterChain {
@@ -246,7 +253,7 @@ public class GatewayFilter implements Filter {
 
     private Holder( String path, String name, Filter filter, Map<String,String> params, String resourceRole ) throws URISyntaxException {
 //      this.path = path;
-      this.template = Parser.parse( path );
+      this.template = Parser.parseTemplate( path );
       this.name = name;
       this.params = params;
       this.instance = filter;
@@ -267,7 +274,7 @@ public class GatewayFilter implements Filter {
 
     private Holder( String path, String name, String clazz, Map<String,String> params, String resourceRole ) throws URISyntaxException {
 //      this.path = path;
-      this.template = Parser.parse( path );
+      this.template = Parser.parseTemplate( path );
       this.name = name;
       this.params = params;
       this.instance = null;

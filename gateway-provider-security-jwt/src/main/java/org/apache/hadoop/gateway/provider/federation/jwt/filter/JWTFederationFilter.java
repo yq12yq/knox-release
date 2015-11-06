@@ -17,8 +17,12 @@
  */
 package org.apache.hadoop.gateway.provider.federation.jwt.filter;
 
+import org.apache.commons.logging.Log;
+import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.apache.hadoop.gateway.provider.federation.jwt.JWTMessages;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.security.token.JWTokenAuthority;
+import org.apache.hadoop.gateway.services.security.token.TokenServiceException;
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
 
 import javax.security.auth.Subject;
@@ -35,13 +39,14 @@ import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Set;
 
 public class JWTFederationFilter implements Filter {
 
   private static final String BEARER = "Bearer ";
-  
+  private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
   private JWTokenAuthority authority = null;
 
   @Override
@@ -59,8 +64,18 @@ public class JWTFederationFilter implements Filter {
     if (header != null && header.startsWith(BEARER)) {
       // what follows the bearer designator should be the JWT token being used to request or as an access token
       String wireToken = header.substring(BEARER.length());
-      JWTToken token = JWTToken.parseToken(wireToken);
-      boolean verified = authority.verifyToken(token);
+      JWTToken token;
+      try {
+        token = JWTToken.parseToken(wireToken);
+      } catch (ParseException e) {
+        throw new ServletException("ParseException encountered while processing the JWT token: ", e);
+      }
+      boolean verified = false;
+      try {
+        verified = authority.verifyToken(token);
+      } catch (TokenServiceException e) {
+        log.unableToVerifyToken(e);
+      }
       if (verified) {
         // TODO: validate expiration
         // confirm that audience matches intended target - which for this filter must be HSSO

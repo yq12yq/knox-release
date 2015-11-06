@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.text.ParseException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ import org.apache.hadoop.gateway.provider.federation.jwt.JWTMessages;
 import org.apache.hadoop.gateway.security.PrimaryPrincipal;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.security.token.JWTokenAuthority;
+import org.apache.hadoop.gateway.services.security.token.TokenServiceException;
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
 
 public class AccessTokenFederationFilter implements Filter {
@@ -62,8 +64,19 @@ public class AccessTokenFederationFilter implements Filter {
     if (header != null && header.startsWith(BEARER)) {
       // what follows the bearer designator should be the JWT token being used to request or as an access token
       String wireToken = header.substring(BEARER.length());
-      JWTToken token = JWTToken.parseToken(wireToken);
-      boolean verified = authority.verifyToken(token);
+      JWTToken token;
+      try {
+        token = JWTToken.parseToken(wireToken);
+      } catch (ParseException e) {
+        throw new ServletException("ParseException encountered while processing the JWT token: ", e);
+      }
+
+      boolean verified = false;
+      try {
+        verified = authority.verifyToken(token);
+      } catch (TokenServiceException e) {
+        log.unableToVerifyToken(e);
+      }
       if (verified) {
         long expires = Long.parseLong(token.getExpires());
         if (expires > System.currentTimeMillis()) {

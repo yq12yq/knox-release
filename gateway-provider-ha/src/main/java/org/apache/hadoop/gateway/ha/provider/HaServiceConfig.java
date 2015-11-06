@@ -42,4 +42,12 @@ public interface HaServiceConfig {
    public void setRetrySleep(int sleep);
 
    public int getRetrySleep();
+
+   public String getZookeeperEnsemble();
+
+   public void setZookeeperEnsemble(String zookeeperEnsemble);
+
+   public String getZookeeperNamespace();
+
+   public void setZookeeperNamespace(String zookeeperNamespace);
 }

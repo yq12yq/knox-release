@@ -17,12 +17,10 @@
  */
 package org.apache.hadoop.gateway.services.security.token.impl;
 
+import java.util.Date;
+
 import com.nimbusds.jose.JWSSigner;
 
-/**
- * @author larry
- *
- */
 public interface JWT {
 
   public static final String PRINCIPAL = "prn";
@@ -45,7 +43,11 @@ public interface JWT {
 
   public abstract String getAudience();
 
+  public String[] getAudienceClaims();
+
   public abstract String getExpires();
+
+  public abstract Date getExpiresDate();
 
   public abstract String getSubject();
 

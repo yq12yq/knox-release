@@ -886,7 +886,11 @@ public class XmlFilterReaderTest {
     } catch ( IOException e ) {
       fail( "Should have thrown an IllegalArgumentException." );
     } catch ( IllegalArgumentException e ) {
-      assertThat( e.getMessage(), containsString( "$.url" ) );
+      if(System.getProperty("java.vendor").contains("IBM")){
+        assertThat( e.getMessage(), containsString( "Extra illegal tokens: 'url'" ) );
+      }else {
+        assertThat( e.getMessage(), containsString( "$.url" ) );
+      }
     }
   }
 
@@ -901,6 +905,50 @@ public class XmlFilterReaderTest {
     assertThat( the( output ), hasXPath( "/*[namespace-uri()='ns' and name()='root']/*[namespace-uri()='ns' and name()='node']", equalTo( "nodevalue" ) ) );
     assertThat( the( output ), hasXPath( "/*[namespace-uri()='ns' and name()='root']/*[namespace-uri()='ns' and name()='node']/@attribute", equalTo( "attr" ) ) );
   }
+
+  @Test
+  public void testEscapeCharactersBugKnox616() throws Exception {
+    String input, output;
+    StringReader reader;
+    XmlFilterReader filter;
+
+    // Ideally this should work but currently does not.
+    //input = "<tag/>";
+    //reader = new StringReader( input );
+    //filter = new NoopXmlFilterReader( reader, null );
+    //output = IOUtils.toString( filter );
+    //assertThat( output, containsString( "<tag/>" ) );
+
+    input = "<tag></tag>";
+    reader = new StringReader( input );
+    filter = new NoopXmlFilterReader( reader, null );
+    output = IOUtils.toString( filter );
+    assertThat( output, containsString( "<tag></tag>" ) );
+
+    input = "<tag>&lt;</tag>";
+    reader = new StringReader( input );
+    filter = new NoopXmlFilterReader( reader, null );
+    output = IOUtils.toString( filter );
+    assertThat( the( output ), hasXPath( "/tag" ) );
+    assertThat( output, containsString( "<tag>&lt;</tag>" ) );
+
+    input = "<tag>&amp;</tag>";
+    reader = new StringReader( input );
+    filter = new NoopXmlFilterReader( reader, null );
+    output = IOUtils.toString( filter );
+    assertThat( output, containsString( "<tag>&amp;</tag>" ) );
+  }
+
+  @Test
+  public void testSpecialTextNodeBugKnox394() throws IOException, ParserConfigurationException, XMLStreamException {
+    String inputXml = "<tag>${oozieTemplateMarkup}</tag>";
+    StringReader inputReader = new StringReader( inputXml );
+    XmlFilterReader filterReader = new NoopXmlFilterReader( inputReader, null );
+    String outputXml = new String( IOUtils.toCharArray( filterReader ) );
+    //System.out.println( "OUTPUT=" + outputXml );
+    assertThat( the( outputXml ), hasXPath( "/tag/text()", equalTo( "${oozieTemplateMarkup}" ) ) );
+  }
+
 
   private class TestXmlFilterReader extends XmlFilterReader {
 

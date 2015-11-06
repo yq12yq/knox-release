@@ -379,84 +379,8 @@ public class DeploymentFactoryFuncTest {
       assertThat(web, hasXPath("/web-app/listener[4]/listener-class", equalTo("org.apache.hadoop.gateway.filter.rewrite.api.UrlRewriteServletContextListener")));
    }
 
-
   @Test
-  public void testDeploymentWithoutReplayBufferSize() throws Exception {
-    GatewayConfig config = new GatewayTestConfig();
-    File targetDir = new File(System.getProperty("user.dir"), "target");
-    File gatewayDir = new File(targetDir, "gateway-home-" + UUID.randomUUID());
-    gatewayDir.mkdirs();
-    ((GatewayTestConfig) config).setGatewayHomeDir(gatewayDir.getAbsolutePath());
-    File deployDir = new File(config.getGatewayDeploymentDir());
-    deployDir.mkdirs();
-    addStacksDir(config, targetDir);
-
-    DefaultGatewayServices srvcs = new DefaultGatewayServices();
-    Map<String, String> options = new HashMap<String, String>();
-    options.put("persist-master", "false");
-    options.put("master", "password");
-    try {
-      DeploymentFactory.setGatewayServices(srvcs);
-      srvcs.init(config, options);
-    } catch (ServiceLifecycleException e) {
-      e.printStackTrace(); // I18N not required.
-    }
-
-    Service service;
-    Topology topology = new Topology();
-    topology.setName( "test-cluster" );
-
-    service = new Service();
-    service.setRole( "HIVE" );
-    service.setUrls( Arrays.asList( new String[]{ "http://hive-host:50001/" } ) );
-    topology.addService( service );
-
-    service = new Service();
-    service.setRole( "WEBHBASE" );
-    service.setUrls( Arrays.asList( new String[]{ "http://hbase-host:50002/" } ) );
-    topology.addService( service );
-
-    service = new Service();
-    service.setRole( "OOZIE" );
-    service.setUrls( Arrays.asList( new String[]{ "http://hbase-host:50003/" } ) );
-    topology.addService( service );
-
-    WebArchive war = DeploymentFactory.createDeployment( config, topology );
-    Document doc = parse( war.get( "WEB-INF/gateway.xml" ).getAsset().openStream() );
-    //dump( doc );
-
-    Node resourceNode, filterNode, paramNode;
-    String value;
-
-    resourceNode = node( doc, "gateway/resource[role/text()='HIVE']" );
-    assertThat( resourceNode, is(not(nullValue())));
-    filterNode = node( resourceNode, "filter[role/text()='dispatch']" );
-    assertThat( filterNode, is(not(nullValue())));
-    paramNode = node( filterNode, "param[name/text()='replayBufferSize']" );
-    value = value( paramNode, "value/text()" );
-    assertThat( value, is( "8" ) ) ;
-
-    resourceNode = node( doc, "gateway/resource[role/text()='WEBHBASE']" );
-    assertThat( resourceNode, is(not(nullValue())));
-    filterNode = node( resourceNode, "filter[role/text()='dispatch']" );
-    assertThat( filterNode, is(not(nullValue())));
-    paramNode = node( filterNode, "param[name/text()='replayBufferSize']" );
-    value = value( paramNode, "value/text()" );
-    assertThat( value, is( "8" ) ) ;
-
-    resourceNode = node( doc, "gateway/resource[role/text()='OOZIE']" );
-    assertThat( resourceNode, is(not(nullValue())));
-    filterNode = node( resourceNode, "filter[role/text()='dispatch']" );
-    assertThat( filterNode, is(not(nullValue())));
-    paramNode = node( filterNode, "param[name/text()='replayBufferSize']" );
-    value = value( paramNode, "value/text()" );
-    assertThat( value, is( "8" ) ) ;
-
-    FileUtils.deleteQuietly( deployDir );
-  }
-
-  @Test
-  public void testDeploymentWithReplayBufferSize() throws Exception {
+  public void testDeploymentWithServiceParams() throws Exception {
     GatewayConfig config = new GatewayTestConfig();
     File targetDir = new File(System.getProperty("user.dir"), "target");
     File gatewayDir = new File(targetDir, "gateway-home-" + UUID.randomUUID());
@@ -486,8 +410,8 @@ public class DeploymentFactoryFuncTest {
     service.setRole( "HIVE" );
     service.setUrls( Arrays.asList( new String[]{ "http://hive-host:50001/" } ) );
     param = new Param();
-    param.setName( "replayBufferSize" );
-    param.setValue( "17" );
+    param.setName( "someparam" );
+    param.setValue( "somevalue" );
     service.addParam( param );
     topology.addService( service );
 
@@ -504,7 +428,7 @@ public class DeploymentFactoryFuncTest {
     service.setRole( "OOZIE" );
     service.setUrls( Arrays.asList( new String[]{ "http://hbase-host:50003/" } ) );
     param = new Param();
-    param.setName( "replayBufferSize" );
+    param.setName( "otherparam" );
     param.setValue( "65" );
     service.addParam( param );
     topology.addService( service );
@@ -520,9 +444,9 @@ public class DeploymentFactoryFuncTest {
     assertThat( resourceNode, is(not(nullValue())));
     filterNode = node( resourceNode, "filter[role/text()='dispatch']" );
     assertThat( filterNode, is(not(nullValue())));
-    paramNode = node( filterNode, "param[name/text()='replayBufferSize']" );
+    paramNode = node( filterNode, "param[name/text()='someparam']" );
     value = value( paramNode, "value/text()" );
-    assertThat( value, is( "17" ) ) ;
+    assertThat( value, is( "somevalue" ) ) ;
 
     resourceNode = node( doc, "gateway/resource[role/text()='WEBHBASE']" );
     assertThat( resourceNode, is(not(nullValue())));
@@ -536,7 +460,7 @@ public class DeploymentFactoryFuncTest {
     assertThat( resourceNode, is(not(nullValue())));
     filterNode = node( resourceNode, "filter[role/text()='dispatch']" );
     assertThat( filterNode, is(not(nullValue())));
-    paramNode = node( filterNode, "param[name/text()='replayBufferSize']" );
+    paramNode = node( filterNode, "param[name/text()='otherparam']" );
     value = value( paramNode, "value/text()" );
     assertThat( value, is( "65" ) ) ;
 

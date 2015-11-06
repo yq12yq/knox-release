@@ -41,7 +41,7 @@ public class Expander {
 
   public static Template expandToTemplate( Template template, Params params, Evaluator evaluator ) throws URISyntaxException {
     //TODO: This could be much more efficient if it didn't create and then parse a string.
-    return Parser.parse( expandToString( template, params, evaluator ) );
+    return Parser.parseLiteral( expandToString( template, params, evaluator ) );
   }
 
   public static String expandToString( Template template, Params params, Evaluator evaluator ) {
@@ -53,8 +53,14 @@ public class Expander {
     expandScheme( template, names, params, evaluator, builder );
     expandAuthority( template, names, params, evaluator, builder );
     expandPath( template, names, params, evaluator, builder );
-    expandQuery( template, names, params, evaluator, builder );
-    expandFragment( template, names, params, evaluator, builder );
+    if( template.hasFragment() ) {
+      StringBuilder fragment = new StringBuilder();
+      expandFragment( template, names, params, evaluator, fragment );
+      expandQuery( template, names, params, evaluator, builder );
+      builder.append( fragment );
+    } else {
+      expandQuery( template, names, params, evaluator, builder );
+    }
     return builder.toString();
   }
 

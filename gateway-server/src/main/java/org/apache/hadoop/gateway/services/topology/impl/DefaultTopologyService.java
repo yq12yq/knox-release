@@ -36,6 +36,7 @@ import org.apache.hadoop.gateway.audit.api.ResourceType;
 import org.apache.hadoop.gateway.audit.log4j.audit.AuditConstants;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.apache.hadoop.gateway.service.definition.ServiceDefinition;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
 import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.topology.Topology;
@@ -44,8 +45,10 @@ import org.apache.hadoop.gateway.topology.TopologyListener;
 import org.apache.hadoop.gateway.topology.TopologyMonitor;
 import org.apache.hadoop.gateway.topology.TopologyProvider;
 import org.apache.hadoop.gateway.topology.builder.TopologyBuilder;
+import org.apache.hadoop.gateway.topology.validation.TopologyValidator;
 import org.apache.hadoop.gateway.topology.xml.AmbariFormatXmlTopologyRules;
 import org.apache.hadoop.gateway.topology.xml.KnoxFormatXmlTopologyRules;
+import org.apache.hadoop.gateway.util.ServiceDefinitionsLoader;
 import org.eclipse.persistence.jaxb.JAXBContextProperties;
 import org.xml.sax.SAXException;
 
@@ -131,34 +134,45 @@ public class DefaultTopologyService
 
   private void redeployTopology(Topology topology) {
     File topologyFile = new File(topology.getUri());
-    long start = System.currentTimeMillis();
-    long limit = 1000L; // One second.
-    long elapsed = 1;
-    while (elapsed <= limit) {
-      try {
-        long origTimestamp = topologyFile.lastModified();
-        long setTimestamp = Math.max(System.currentTimeMillis(), topologyFile.lastModified() + elapsed);
-        if (topologyFile.setLastModified(setTimestamp)) {
-          long newTimstamp = topologyFile.lastModified();
-          if (newTimstamp > origTimestamp) {
-            break;
-          } else {
-            Thread.sleep(10);
-            elapsed = System.currentTimeMillis() - start;
-            continue;
-          }
-        } else {
-          auditor.audit(Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY,
-            ActionOutcome.FAILURE);
-          log.failedToRedeployTopology(topology.getName());
-          break;
-        }
-      } catch (InterruptedException e) {
-        auditor.audit(Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY,
-          ActionOutcome.FAILURE);
-        log.failedToRedeployTopology(topology.getName(), e);
-        e.printStackTrace();
+    try {
+      TopologyValidator tv = new TopologyValidator(topology);
+
+      if(tv.validateTopology()) {
+        throw new SAXException(tv.getErrorString());
       }
+
+      long start = System.currentTimeMillis();
+      long limit = 1000L; // One second.
+      long elapsed = 1;
+      while (elapsed <= limit) {
+        try {
+          long origTimestamp = topologyFile.lastModified();
+          long setTimestamp = Math.max(System.currentTimeMillis(), topologyFile.lastModified() + elapsed);
+          if(topologyFile.setLastModified(setTimestamp)) {
+            long newTimstamp = topologyFile.lastModified();
+            if(newTimstamp > origTimestamp) {
+              break;
+            } else {
+              Thread.sleep(10);
+              elapsed = System.currentTimeMillis() - start;
+              continue;
+            }
+          } else {
+            auditor.audit(Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY,
+                ActionOutcome.FAILURE);
+            log.failedToRedeployTopology(topology.getName());
+            break;
+          }
+        } catch (InterruptedException e) {
+          auditor.audit(Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY,
+              ActionOutcome.FAILURE);
+          log.failedToRedeployTopology(topology.getName(), e);
+          e.printStackTrace();
+        }
+      }
+    } catch (SAXException e) {
+      auditor.audit(Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY, ActionOutcome.FAILURE);
+      log.failedToRedeployTopology(topology.getName(), e);
     }
   }
 
@@ -208,7 +222,9 @@ public class DefaultTopologyService
   }
 
   private void initListener(File directory) throws IOException, SAXException {
-    initListener(new FileAlterationMonitor(1000L), directory);
+    // Increasing the monitoring interval to 5 seconds as profiling has shown
+    // this is rather expensive in terms of generated garbage objects.
+    initListener(new FileAlterationMonitor(5000L), directory);
   }
 
   private Map<File, Topology> loadTopologies(File directory) {
@@ -267,12 +283,22 @@ public class DefaultTopologyService
         throw new IOException("Could not rename temp file");
       }
 
+      // This code will check if the topology is valid, and retrieve the errors if it is not.
+      TopologyValidator validator = new TopologyValidator( topology.getAbsolutePath() );
+      if( !validator.validateTopology() ){
+        throw new SAXException( validator.getErrorString() );
+      }
+
+
     } catch (JAXBException e) {
       auditor.audit(Action.DEPLOY, t.getName(), ResourceType.TOPOLOGY, ActionOutcome.FAILURE);
       log.failedToDeployTopology(t.getName(), e);
     } catch (IOException io) {
       auditor.audit(Action.DEPLOY, t.getName(), ResourceType.TOPOLOGY, ActionOutcome.FAILURE);
       log.failedToDeployTopology(t.getName(), io);
+    } catch (SAXException sx){
+      auditor.audit(Action.DEPLOY, t.getName(), ResourceType.TOPOLOGY, ActionOutcome.FAILURE);
+      log.failedToDeployTopology(t.getName(), sx);
     }
     reloadTopologies();
   }
@@ -326,6 +352,25 @@ public class DefaultTopologyService
         log.failedToHandleTopologyEvents(e);
       }
     }
+  }
+
+  public Map<String, List<String>> getServiceTestURLs(Topology t, GatewayConfig config) {
+    File tFile = null;
+    Map<String, List<String>> urls = new HashMap<>();
+    for(File f : directory.listFiles()){
+      if(FilenameUtils.removeExtension(f.getName()).equals(t.getName())){
+        tFile = f;
+      }
+    }
+    Set<ServiceDefinition> defs;
+    if(tFile != null) {
+      defs = ServiceDefinitionsLoader.getServiceDefinitions(new File(config.getGatewayServicesDir()));
+
+      for(ServiceDefinition def : defs) {
+        urls.put(def.getRole(), def.getTestURLs());
+      }
+    }
+    return urls;
   }
 
   public Collection<Topology> getTopologies() {

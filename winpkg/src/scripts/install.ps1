@@ -59,7 +59,7 @@ param(
 
 function Main( $scriptDir )
 {
-    $FinalName = "knox-@knox.version@"
+    $FinalName = "knox-0.6.0"
     if ( -not (Test-Path ENV:WINPKG_LOG))
     {
         $ENV:WINPKG_LOG = "$FinalName.winpkg.log"

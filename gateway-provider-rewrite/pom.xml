@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.6.0</version>
+        <version>0.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-provider-rewrite</artifactId>
 
@@ -72,6 +72,10 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
             <groupId>net.htmlparser.jericho</groupId>

@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.6.0</version>
+        <version>0.7.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-provider-ha</artifactId>
 
@@ -46,6 +46,20 @@
             <groupId>${gateway-group}</groupId>
             <artifactId>gateway-spi</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-framework</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.curator</groupId>
+            <artifactId>curator-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
         <dependency>
             <groupId>org.easymock</groupId>

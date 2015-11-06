@@ -26,7 +26,7 @@
     </parent>
     <groupId>org.apache.knox</groupId>
     <artifactId>gateway</artifactId>
-    <version>0.6.0</version>
+    <version>0.7.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>gateway</name>
@@ -83,6 +83,7 @@
         <module>gateway-test</module>
         <module>hsso-release</module>
         <module>gateway-service-vault</module>
+        <module>gateway-service-test</module>
     </modules>
 
     <properties>
@@ -93,7 +94,7 @@
         <gateway-name>Apache Knox</gateway-name>
         <gateway-project>knox</gateway-project>
         <gateway-artifact>knox</gateway-artifact>
-        <gateway-version>0.6.0</gateway-version>
+        <gateway-version>0.7.0-SNAPSHOT</gateway-version>
         <gateway-group>org.apache.knox</gateway-group>
         <hadoop-version>2.2.0</hadoop-version>
         <jetty-version>8.1.14.v20131031</jetty-version>
@@ -560,6 +561,11 @@
             </dependency>
             <dependency>
                 <groupId>${gateway-group}</groupId>
+                <artifactId>gateway-service-test</artifactId>
+                <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-service-as</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
@@ -703,6 +709,12 @@
                 <groupId>org.eclipse.persistence</groupId>
                 <artifactId>eclipselink</artifactId>
                 <version>2.5.2</version>
+            </dependency>
+
+           <dependency>
+                <groupId>com.thetransactioncompany</groupId>
+                <artifactId>cors-filter</artifactId>
+                <version>2.4</version>
             </dependency>
 
             <dependency>
@@ -916,7 +928,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.1</version>
+                <version>3.4</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -1013,6 +1025,17 @@
                 <groupId>org.apache.shiro</groupId>
                 <artifactId>shiro-ehcache</artifactId>
                 <version>1.2.3</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.6</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>2.6.0</version>
             </dependency>
 
             <!-- Html pull parser.  EPLv1 license -->
@@ -1120,6 +1143,13 @@
                 <groupId>com.jayway.jsonpath</groupId>
                 <artifactId>json-path-assert</artifactId>
                 <version>0.9.1</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-test</artifactId>
+                <version>2.6.0</version>
                 <scope>test</scope>
             </dependency>
 

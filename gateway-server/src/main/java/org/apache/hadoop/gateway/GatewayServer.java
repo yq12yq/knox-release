@@ -30,21 +30,28 @@ import org.apache.hadoop.gateway.audit.log4j.audit.AuditConstants;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.config.impl.GatewayConfigImpl;
 import org.apache.hadoop.gateway.deploy.DeploymentFactory;
+import org.apache.hadoop.gateway.filter.CorrelationHandler;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.apache.hadoop.gateway.i18n.resources.ResourcesFactory;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
-import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.services.registry.ServiceRegistry;
 import org.apache.hadoop.gateway.services.security.SSLService;
+import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.topology.Topology;
 import org.apache.hadoop.gateway.topology.TopologyEvent;
 import org.apache.hadoop.gateway.topology.TopologyListener;
+import org.apache.hadoop.gateway.trace.AccessHandler;
+import org.apache.hadoop.gateway.trace.ErrorHandler;
+import org.apache.hadoop.gateway.trace.TraceHandler;
 import org.apache.log4j.PropertyConfigurator;
 import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.ErrorHandler;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.RequestLogHandler;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.jboss.shrinkwrap.api.exporter.ExplodedExporter;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -59,6 +66,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.security.ProviderException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -89,6 +97,7 @@ public class GatewayServer {
   public static void main( String[] args ) {
     try {
       configureLogging();
+      logSysProps();
       CommandLine cmd = GatewayCommandLine.parse( args );
       if( cmd.hasOption( GatewayCommandLine.HELP_LONG ) ) {
         GatewayCommandLine.printHelp();
@@ -156,6 +165,18 @@ public class GatewayServer {
 
   public static synchronized GatewayServices getGatewayServices() {
     return services;
+  }
+
+  private static void logSysProp( String name ) {
+    log.logSysProp( name, System.getProperty( name ) );
+  }
+
+  private static void logSysProps() {
+    logSysProp( "user.name" );
+    logSysProp( "user.dir" );
+    logSysProp( "java.runtime.name" );
+    logSysProp( "java.runtime.version" );
+    logSysProp( "java.home" );
   }
 
   private static void configureLogging() {
@@ -292,7 +313,23 @@ public class GatewayServer {
       connector.setPort(address.getPort());
       jetty.addConnector(connector);
     }
-    jetty.setHandler( contexts );
+
+    HandlerCollection handlers = new HandlerCollection();
+    RequestLogHandler logHandler = new RequestLogHandler();
+    logHandler.setRequestLog( new AccessHandler() );
+
+    TraceHandler traceHandler = new TraceHandler();
+    traceHandler.setHandler( contexts );
+    traceHandler.setTracedBodyFilter( System.getProperty( "org.apache.knox.gateway.trace.body.status.filter" ) );
+
+    CorrelationHandler correlationHandler = new CorrelationHandler();
+    correlationHandler.setHandler( traceHandler );
+
+    handlers.setHandlers( new Handler[]{ correlationHandler, logHandler } );
+    jetty.setHandler( handlers );
+
+    jetty.setThreadPool( new QueuedThreadPool( config.getThreadPoolMax() ) );
+
     try {
     jetty.start();
     }
@@ -343,6 +380,7 @@ public class GatewayServer {
     String warPath = warFile.getAbsolutePath();
     errorHandler = new ErrorHandler();
     errorHandler.setShowStacks(false);
+    errorHandler.setTracedBodyFilter( System.getProperty( "org.apache.knox.gateway.trace.body.status.filter" ) );
     WebAppContext context = new WebAppContext();
     context.setDefaultsDescriptor( null );
     if (!name.equals("_default")) {
@@ -356,6 +394,7 @@ public class GatewayServer {
     // internalUndeploy( topology ); KNOX-152
     context.setAttribute( GatewayServices.GATEWAY_CLUSTER_ATTRIBUTE, name );
     context.setAttribute( "org.apache.knox.gateway.frontend.uri", getFrontendUri( context, config ) );
+    context.setAttribute( GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE, config );
     deployments.put( name, context );
     contexts.addHandler( context );
     try {
@@ -421,6 +460,12 @@ public class GatewayServer {
         File warDir = calculateDeploymentDir( topology );
         if( !warDir.exists() ) {
           auditor.audit( Action.DEPLOY, topology.getName(), ResourceType.TOPOLOGY, ActionOutcome.UNAVAILABLE );
+
+//          KNOX-564 - Topology should fail to deploy with no providers configured.
+          if(topology.getProviders().isEmpty()) {
+            throw new ProviderException("No providers found inside topology.");
+          }
+
           log.deployingTopology( topology.getName(), warDir.getAbsolutePath() );
           internalUndeploy( topology ); // KNOX-152
           WebArchive war = null;
