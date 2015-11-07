@@ -26,7 +26,6 @@
   </parent>
   <groupId>org.apache.knox</groupId>
   <artifactId>gateway-service-knoxsso</artifactId>
-  <version>0.6.0</version>
   <name>gateway-service-knoxsso</name>
   <url>http://maven.apache.org</url>
   <properties>
