@@ -111,7 +111,7 @@ public class GatewayLdapGroupFuncTest {
   }
 
   public static void setupGateway(int ldapPort) throws Exception {
-    
+
     File targetDir = new File( System.getProperty( "user.dir" ), "target" );
     File gatewayDir = new File( targetDir, "gateway-home-" + UUID.randomUUID() );
     gatewayDir.mkdirs();
@@ -130,18 +130,18 @@ public class GatewayLdapGroupFuncTest {
     FileOutputStream stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
+
     DefaultGatewayServices srvcs = new DefaultGatewayServices();
     Map<String,String> options = new HashMap<String,String>();
     options.put( "persist-master", "true" );
     options.put( "master", "hadoop" );
-    
+
     try {
       srvcs.init( testConfig, options );
     } catch ( ServiceLifecycleException e ) {
       e.printStackTrace(); // I18N not required.
     }
-    
+
     /*
     System.setProperty(GatewayConfig.GATEWAY_HOME_VAR, gatewayDir.getAbsolutePath());
     System.err.println("GH 10: " + System.getProperty(GatewayConfig.GATEWAY_HOME_VAR));
@@ -151,18 +151,18 @@ public class GatewayLdapGroupFuncTest {
     KnoxCLI cli = new KnoxCLI();
     cli.setConf(new GatewayConfigImpl());
     cli.run(argvals);
-    
+
     outContent.reset();
     String[] args1 = {"list-alias", "--cluster", "test-cluster", "--master", "hadoop"};
     cli = new KnoxCLI();
     cli.run(args1);
     System.err.println("ALIAS LIST: " + outContent.toString());
-    
+
     AliasService as1 = cli.getGatewayServices().getService(GatewayServices.ALIAS_SERVICE);
     char[] passwordChars1 = as1.getPasswordFromAliasForCluster( "test-cluster", "ldcsystemPassword");
     System.err.println("ALIAS value1: " + new String(passwordChars1));
     */
-    
+
     gateway = GatewayServer.startGateway( testConfig, srvcs );
     MatcherAssert.assertThat( "Failed to start gateway.", gateway, notNullValue() );
 
@@ -170,24 +170,24 @@ public class GatewayLdapGroupFuncTest {
 
     gatewayUrl = "http://localhost:" + gateway.getAddresses()[0].getPort() + "/" + config.getGatewayPath();
     clusterUrl = gatewayUrl + "/test-cluster";
-    
+
     ///*
     GatewayServices services = GatewayServer.getGatewayServices();
     AliasService aliasService = (AliasService)services.getService(GatewayServices.ALIAS_SERVICE);
     aliasService.addAliasForCluster("test-cluster", "ldcSystemPassword", "guest-password");
-  
+
     char[] password1 = aliasService.getPasswordFromAliasForCluster( "test-cluster", "ldcSystemPassword");
     //System.err.println("SETUP password 10: " + ((password1 == null) ? "NULL" : new String(password1)));
-    
+
     descriptor = new File( topoDir, "test-cluster.xml" );
     stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
+
     try {
       Thread.sleep(5000);
     } catch (Exception e) {
-      
+
     }
     //*/
   }
@@ -196,7 +196,7 @@ public class GatewayLdapGroupFuncTest {
     XMLTag xml = XMLDoc.newDocument( true )
         .addRoot( "topology" )
         .addTag( "gateway" )
-        
+
         .addTag( "provider" )
         .addTag( "role" ).addText( "authentication" )
         .addTag( "name" ).addText( "ShiroProvider" )
@@ -249,7 +249,7 @@ public class GatewayLdapGroupFuncTest {
         .gotoParent().addTag( "param" )
         .addTag( "name" ).addText( "urls./**" )
         .addTag( "value" ).addText( "authcBasic" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "authorization" )
         .addTag( "name" ).addText( "AclsAuthz" )
@@ -257,12 +257,12 @@ public class GatewayLdapGroupFuncTest {
         .addTag( "param" )
         .addTag( "name" ).addText( "test-service-role.acl" ) // FIXME[dilli]
         .addTag( "value" ).addText( "*;analyst;*" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "identity-assertion" )
         .addTag( "enabled" ).addText( "true" )
         .addTag( "name" ).addText( "Default" ).gotoParent()
-        
+
         .gotoRoot()
         .addTag( "service" )
         .addTag( "role" ).addText( "test-service-role" )

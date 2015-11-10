@@ -112,7 +112,7 @@ public class Knox242FuncTest {
   }
 
   public static void setupGateway(int ldapPort) throws IOException, Exception {
-    
+
     File targetDir = new File( System.getProperty( "user.dir" ), "target" );
     File gatewayDir = new File( targetDir, "gateway-home-" + UUID.randomUUID() );
     gatewayDir.mkdirs();
@@ -131,7 +131,7 @@ public class Knox242FuncTest {
     FileOutputStream stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
+
     DefaultGatewayServices srvcs = new DefaultGatewayServices();
     Map<String,String> options = new HashMap<String,String>();
     options.put( "persist-master", "false" );
@@ -141,7 +141,7 @@ public class Knox242FuncTest {
     } catch ( ServiceLifecycleException e ) {
       e.printStackTrace(); // I18N not required.
     }
-    
+
     gateway = GatewayServer.startGateway( testConfig, srvcs );
     MatcherAssert.assertThat( "Failed to start gateway.", gateway, notNullValue() );
 
@@ -149,23 +149,23 @@ public class Knox242FuncTest {
 
     gatewayUrl = "http://localhost:" + gateway.getAddresses()[0].getPort() + "/" + config.getGatewayPath();
     clusterUrl = gatewayUrl + "/testdg-cluster";
-    
+
     GatewayServices services = GatewayServer.getGatewayServices();
     AliasService aliasService = (AliasService)services.getService(GatewayServices.ALIAS_SERVICE);
     aliasService.addAliasForCluster("testdg-cluster", "ldcSystemPassword", "guest-password");
-  
+
     char[] password1 = aliasService.getPasswordFromAliasForCluster( "testdg-cluster", "ldcSystemPassword");
     //System.err.println("SETUP password 10: " + ((password1 == null) ? "NULL" : new String(password1)));
-    
+
     descriptor = new File( topoDir, "testdg-cluster.xml" );
     stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
+
     try {
       Thread.sleep(5000);
     } catch (Exception e) {
-      
+
     }
   }
 
@@ -173,7 +173,7 @@ public class Knox242FuncTest {
     XMLTag xml = XMLDoc.newDocument( true )
         .addRoot( "topology" )
         .addTag( "gateway" )
-        
+
         .addTag( "provider" )
         .addTag( "role" ).addText( "authentication" )
         .addTag( "name" ).addText( "ShiroProvider" )
@@ -242,7 +242,7 @@ public class Knox242FuncTest {
         .gotoParent().addTag( "param" )
         .addTag( "name" ).addText( "urls./**" )
         .addTag( "value" ).addText( "authcBasic" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "authorization" )
         .addTag( "name" ).addText( "AclsAuthz" )
@@ -250,12 +250,12 @@ public class Knox242FuncTest {
         .addTag( "param" )
         .addTag( "name" ).addText( "test-service-role.acl" )
         .addTag( "value" ).addText( "*;directors;*" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "identity-assertion" )
         .addTag( "enabled" ).addText( "true" )
         .addTag( "name" ).addText( "Default" ).gotoParent()
-        
+
         .gotoRoot()
         .addTag( "service" )
         .addTag( "role" ).addText( "test-service-role" )

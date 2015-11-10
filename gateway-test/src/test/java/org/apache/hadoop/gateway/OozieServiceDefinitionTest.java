@@ -103,7 +103,7 @@ public class OozieServiceDefinitionTest {
     LOG_EXIT();
   }
 
-  @Test( timeout = SHORT_TIMEOUT )
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testOozieRewriteRulesForLiteralComplexTemplateValuesBugKnox394() throws Exception {
     LOG_ENTER();
 
@@ -156,7 +156,7 @@ public class OozieServiceDefinitionTest {
     LOG_EXIT();
   }
 
-  @Test( timeout = SHORT_TIMEOUT )
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testOozieRewriteRulesForValuesRelativeToServiceRegistry() throws Exception {
     LOG_ENTER();
 
