@@ -110,4 +110,13 @@ public interface GatewayConfig {
   int getHttpClientMaxConnections();
 
   int getThreadPoolMax();
+
+  int getHttpServerRequestBuffer();
+
+  int getHttpServerRequestHeaderBuffer();
+
+  int getHttpServerResponseBuffer();
+
+  int getHttpServerResponseHeaderBuffer();
+
 }
