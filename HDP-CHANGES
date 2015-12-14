@@ -1,7 +1,6 @@
 Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence not covered by CHANGES.txt.
 
   BUG FIXES
-  
     KNOX-476 implementation for X-Forwarded-* headers support and population (Sumit Gupta)
     Fixed version number of new module gateway-server-xforwarded-filter (Sumit Gupta)
     KNOX-546 Consuming intermediate response during kerberos request dispatching (Sumit Gupta)
@@ -9,9 +8,13 @@ Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence 
     KNOX-558: HttpClient connections are not always returned to the pool for HBase on Windows (Kevin Minder)
     KNOX-559 renaming service definition files (Sumit Gupta)
     KNOX-598: Concurrent JDBC clients via KNOX to Kerberized HiveServer2 causes HTTP 401 error (due to Kerberos Replay attack error)
+    KNOX-581: Hive dispatch not propagating effective principal name
     
   IMPROVEMENTS
     KNOX-561: Allow Knox pid directory to be configured via the knox-env.sh file (Kevin Minder)
     KNOX-545 - Simplify Keystore Management for Cluster Scaleout (Larry McCay)
     KNOX-598 - Concurrent JDBC clients via KNOX to Kerberized HiveServer2 causes HTTP 401 error (due to Kerberos Replay attack error)
     KNOX-599 - Template with {**} in queries are expanded with =null for query params without a value
+    KNOX-579: Regex based identity assertion provider with static dictionary lookup
+    KNOX-566 - Make the Default Ephemeral DH Key Size 2048 for TLS
+    KNOX-633: Upgrade apache commons-collections
