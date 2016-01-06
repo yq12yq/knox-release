@@ -91,7 +91,6 @@
                 <exclude>${gateway-group}:gateway-server-launcher</exclude>
                 <exclude>${gateway-group}:gateway-shell-launcher</exclude>
                 <exclude>${gateway-group}:gateway-test-ldap-launcher</exclude>
-                <exclude>${gateway-group}:gateway-test-ldap</exclude>
             </excludes>
         </dependencySet>
         <dependencySet>
