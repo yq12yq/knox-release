@@ -18,3 +18,4 @@ Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence 
     KNOX-579: Regex based identity assertion provider with static dictionary lookup
     KNOX-566 - Make the Default Ephemeral DH Key Size 2048 for TLS
     KNOX-633: Upgrade apache commons-collections
+    KNOX-647: Rename LDAP artifacts from test to demo
