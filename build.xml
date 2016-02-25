@@ -1,70 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Licensed to the Apache Software Foundation (ASF) under one or more
-  contributor license agreements.  See the NOTICE file distributed with
-  this work for additional information regarding copyright ownership.
-  The ASF licenses this file to You under the Apache License, Version 2.0
-  (the "License"); you may not use this file except in compliance with
-  the License.  You may obtain a copy of the License at
+Licensed to the Apache Software Foundation (ASF) under one or more
+contributor license agreements.  See the NOTICE file distributed with
+this work for additional information regarding copyright ownership.
+The ASF licenses this file to You under the Apache License, Version 2.0
+(the "License"); you may not use this file except in compliance with
+the License.  You may obtain a copy of the License at
 
-      http://www.apache.org/licenses/LICENSE-2.0
+http://www.apache.org/licenses/LICENSE-2.0
 
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 -->
 <project name="Apache Knox Gateway" default="build" basedir=".">
 
-    <description>
-        Release build file for the Apache Knox Gateway
-    </description>
+<description>
+Release build file for the Apache Knox Gateway
+</description>
 
-    <property name="gateway-name" value="Apache Knox"/>
-    <property name="gateway-project" value="knox"/>
-    <property name="gateway-artifact" value="knox"/>
-    <property name="gateway-version" value="0.6.0"/>
-    <property name="release-manager" value="kminder"/>
+<property name="gateway-name" value="Apache Knox"/>
+<property name="gateway-project" value="knox"/>
+<property name="gateway-artifact" value="knox"/>
+    <property name="gateway-version" value="0.9.0-SNAPSHOT"/>
+<property name="release-manager" value="kminder"/>
 
-    <property name="gateway-home" value="${gateway-artifact}-${gateway-version}"/>
+<property name="gateway-home" value="${gateway-artifact}-${gateway-version}"/>
 
-    <property name="build-url" value="https://builds.apache.org/job/Knox-${gateway-version}/ws/target/${gateway-version}"/>
+<property name="build-url" value="https://builds.apache.org/job/Knox-${gateway-version}/ws/target/${gateway-version}"/>
 
-    <property name="install.dir" value="install"/>
-    <property name="candidate.dir" value="candidate"/>
+<property name="install.dir" value="install"/>
+<property name="candidate.dir" value="candidate"/>
 
-    <property name="svn.release.path" value="https://dist.apache.org/repos/dist/release/${gateway-project}" />
-    <property name="svn.staging.path" value="https://dist.apache.org/repos/dist/dev/${gateway-project}" />
+<property name="svn.release.path" value="https://dist.apache.org/repos/dist/release/${gateway-project}" />
+<property name="svn.staging.path" value="https://dist.apache.org/repos/dist/dev/${gateway-project}" />
 
-    <condition property="isUnix">
-        <os family="unix"/>
-    </condition>
+<condition property="isUnix">
+<os family="unix"/>
+</condition>
 
-    <condition property="isWindows">
-        <os family="windows"/>
-    </condition>
+<condition property="isWindows">
+<os family="windows"/>
+</condition>
 
-    <condition property="mvn.cmd" value="mvn">
-        <os family="unix" />
-    </condition>
-    <condition property="mvn.cmd" value="mvn.bat">
-        <os family="windows" />
-    </condition>
+<condition property="mvn.cmd" value="mvn">
+<os family="unix" />
+</condition>
+<condition property="mvn.cmd" value="mvn.bat">
+<os family="windows" />
+</condition>
 
-    <condition property="svn.cmd" value="svn">
-        <os family="unix" />
-    </condition>
-    <condition property="svn.cmd" value="svn">
-        <os family="windows" />
-    </condition>
+<condition property="svn.cmd" value="svn">
+<os family="unix" />
+</condition>
+<condition property="svn.cmd" value="svn">
+<os family="windows" />
+</condition>
 
-    <condition property="curl.cmd" value="curl">
-        <os family="unix" />
-    </condition>
-    <condition property="curl.cmd" value="curl">
-        <os family="windows" />
-    </condition>
+<condition property="curl.cmd" value="curl">
+<os family="unix" />
+</condition>
+<condition property="curl.cmd" value="curl">
+<os family="windows" />
+</condition>
 
   <target name="_username">
     <input message="" addproperty="username">
@@ -84,65 +84,65 @@
     </input>
   </target>
 
-    <target name="_init" description="Initialize the build.">
-    </target>
+<target name="_init" description="Initialize the build.">
+</target>
 
-    <target name="clean" depends="_init" description="Clean up any build artifacts.">
-        <delete dir="target"/>
-        <delete dir="${install.dir}"/>
-        <delete dir="${candidate.dir}"/>
-    </target>
+<target name="clean" depends="_init" description="Clean up any build artifacts.">
+<delete dir="target"/>
+<delete dir="${install.dir}"/>
+<delete dir="${candidate.dir}"/>
+</target>
 
-    <target name="build" depends="_init" description="Build the product.">
-        <exec executable="${mvn.cmd}">
-            <arg value="clean"/>
-            <arg value="install"/>
-        </exec>
-    </target>
+<target name="build" depends="_init" description="Build the product.">
+<exec executable="${mvn.cmd}">
+    <arg value="clean"/>
+    <arg value="install"/>
+</exec>
+</target>
 
-    <target name="build-notest" depends="_init" description="Build the product without running tests.">
-        <exec executable="${mvn.cmd}">
-            <arg value="-DskipTests"/>
-            <arg value="clean"/>
-            <arg value="install"/>
-        </exec>
-    </target>
+<target name="build-notest" depends="_init" description="Build the product without running tests.">
+<exec executable="${mvn.cmd}">
+    <arg value="-DskipTests"/>
+    <arg value="clean"/>
+    <arg value="install"/>
+</exec>
+</target>
 
-    <target name="verify" depends="package" description="Perform the verification build."/>
-    <target name="package" depends="_init" description="Build and package the product (aka verify).">
-        <exec executable="${mvn.cmd}">
-            <arg value="-Prelease"/>
-            <arg value="clean"/>
-            <arg value="install"/>
-        </exec>
-        <copy todir="target/${gateway-version}">
-            <fileset file="CHANGES"/>
-        </copy>
-    </target>
+<target name="verify" depends="package" description="Perform the verification build."/>
+<target name="package" depends="_init" description="Build and package the product (aka verify).">
+<exec executable="${mvn.cmd}">
+    <arg value="-Prelease"/>
+    <arg value="clean"/>
+    <arg value="install"/>
+</exec>
+<copy todir="target/${gateway-version}">
+    <fileset file="CHANGES"/>
+</copy>
+</target>
 
-    <target name="daily" depends="full" description="Perform the daily build."/>
-    <target name="full" depends="_init" description="Perform a full build (aka daily).">
-        <exec executable="${mvn.cmd}">
-            <arg value="-Panalyze"/>
-            <arg value="-Prelease"/>
-            <arg value="site"/>
-        </exec>
-    </target>
+<target name="daily" depends="full" description="Perform the daily build."/>
+<target name="full" depends="_init" description="Perform a full build (aka daily).">
+<exec executable="${mvn.cmd}">
+    <arg value="-Panalyze"/>
+    <arg value="-Prelease"/>
+    <arg value="site"/>
+</exec>
+</target>
 
-    <target name="post-build" depends="_init,_changes"/>
+<target name="post-build" depends="_init,_changes"/>
 
-    <target name="_changes" depends="_init">
-        <copy file="CHANGES" todir="target/${gateway-version}"/>
-    </target>
+<target name="_changes" depends="_init">
+<copy file="CHANGES" todir="target/${gateway-version}"/>
+</target>
 
-    <target name="build-candidate">
-        <exec executable="${curl.cmd}">
-            <arg value="--silent"/>
-            <arg value="--request"/>
-            <arg value="POST"/>
-            <arg value="https://builds.apache.org/job/Knox-${gateway-version}/build?token=knox-remote-build-token"/>
-        </exec>
-    </target>
+<target name="build-candidate">
+<exec executable="${curl.cmd}">
+    <arg value="--silent"/>
+    <arg value="--request"/>
+    <arg value="POST"/>
+    <arg value="https://builds.apache.org/job/Knox-${gateway-version}/build?token=knox-remote-build-token"/>
+</exec>
+</target>
 
     <target name="download-candidate" depends="_username,_password">
         <mkdir dir="${candidate.dir}"/>
@@ -263,6 +263,8 @@
             <arg value="${username}" />
             <arg value="--password" />
             <arg value="${password}" />
+            <arg value="--trust-server-cert" />
+            <arg value="--non-interactive" />
         </exec>
     </target>
 
@@ -276,6 +278,8 @@
             <arg value="${username}" />
             <arg value="--password" />
             <arg value="${password}" />
+            <arg value="--trust-server-cert" />
+            <arg value="--non-interactive" />
         </exec>
     </target>
 
@@ -290,6 +294,8 @@
             <arg value="${username}" />
             <arg value="--password" />
             <arg value="${password}" />
+            <arg value="--trust-server-cert" />
+            <arg value="--non-interactive" />
         </exec>
     </target>
 

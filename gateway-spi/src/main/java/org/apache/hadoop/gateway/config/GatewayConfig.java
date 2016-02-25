@@ -59,6 +59,12 @@ public interface GatewayConfig {
    */
   String getGatewayServicesDir();
 
+  /**
+   * The location of the gateway applications's root directory
+   * @return The location of the gateway applications top level directory.
+   */
+  String getGatewayApplicationsDir();
+
   String getHadoopConfDir();
 
   String getGatewayHost();
@@ -106,4 +112,21 @@ public interface GatewayConfig {
   boolean isXForwardedEnabled();
 
   String getEphemeralDHKeySize();
+
+  int getHttpClientMaxConnections();
+
+  int getThreadPoolMax();
+
+  int getHttpServerRequestBuffer();
+
+  int getHttpServerRequestHeaderBuffer();
+
+  int getHttpServerResponseBuffer();
+
+  int getHttpServerResponseHeaderBuffer();
+
+  int getGatewayDeploymentsBackupVersionLimit();
+
+  long getGatewayDeploymentsBackupAgeLimit();
+
 }

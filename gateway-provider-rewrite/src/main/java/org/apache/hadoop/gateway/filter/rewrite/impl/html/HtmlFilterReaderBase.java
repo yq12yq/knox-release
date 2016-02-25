@@ -24,7 +24,11 @@ import net.htmlparser.jericho.Segment;
 import net.htmlparser.jericho.StartTag;
 import net.htmlparser.jericho.StreamedSource;
 import net.htmlparser.jericho.Tag;
+import org.apache.hadoop.gateway.filter.rewrite.api.UrlRewriteFilterContentDescriptor;
+import org.apache.hadoop.gateway.filter.rewrite.api.UrlRewriteFilterPathDescriptor;
 import org.apache.hadoop.gateway.filter.rewrite.i18n.UrlRewriteMessages;
+import org.apache.hadoop.gateway.filter.rewrite.impl.UrlRewriteFilterReader;
+import org.apache.hadoop.gateway.filter.rewrite.impl.UrlRewriteUtil;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -39,8 +43,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Stack;
+import java.util.regex.Pattern;
 
-public abstract class HtmlFilterReaderBase extends Reader {
+public abstract class HtmlFilterReaderBase extends Reader implements UrlRewriteFilterReader {
+
+  private static final String SCRIPTTAG = "script";
+  private static final UrlRewriteFilterPathDescriptor.Compiler<Pattern> REGEX_COMPILER = new RegexCompiler();
 
   private static final UrlRewriteMessages LOG = MessagesFactory.get( UrlRewriteMessages.class );
 
@@ -53,6 +61,7 @@ public abstract class HtmlFilterReaderBase extends Reader {
   private int offset;
   private StringWriter writer;
   private StringBuffer buffer;
+  private UrlRewriteFilterContentDescriptor config = null;
 
   protected HtmlFilterReaderBase( Reader reader ) throws IOException, ParserConfigurationException {
     this.reader = reader;
@@ -63,6 +72,11 @@ public abstract class HtmlFilterReaderBase extends Reader {
     writer = new StringWriter();
     buffer = writer.getBuffer();
     offset = 0;
+  }
+
+  protected HtmlFilterReaderBase( Reader reader, UrlRewriteFilterContentDescriptor config ) throws IOException, ParserConfigurationException {
+    this(reader);
+    this.config = config;
   }
 
   protected abstract String filterAttribute( QName elementName, QName attributeName, String attributeValue, String ruleName );
@@ -152,23 +166,25 @@ public abstract class HtmlFilterReaderBase extends Reader {
   }
 
   private void processAttribute( Attribute attribute ) {
-    String inputValue = attribute.getValue();
-    String outputValue = inputValue;
-    try {
-      Level tag = stack.peek();
-      outputValue = filterAttribute( tag.getQName(), tag.getQName( attribute.getName() ), inputValue, null );
-      if( outputValue == null ) {
-        outputValue = inputValue;
-      }
-    } catch ( Exception e ) {
-      LOG.failedToFilterAttribute( attribute.getName(), e );
-    }
     writer.write( " " );
     writer.write( attribute.getName() );
-    writer.write( "=" );
-    writer.write( attribute.getQuoteChar() );
-    writer.write( outputValue );
-    writer.write( attribute.getQuoteChar() );
+    if(attribute.hasValue()) {
+      String inputValue = attribute.getValue();
+      String outputValue = inputValue;
+      try {
+        Level tag = stack.peek();
+        outputValue = filterAttribute( tag.getQName(), tag.getQName( attribute.getName() ), inputValue, null );
+        if( outputValue == null ) {
+          outputValue = inputValue;
+        }
+      } catch ( Exception e ) {
+        LOG.failedToFilterAttribute( attribute.getName(), e );
+      }
+      writer.write( "=" );
+      writer.write( attribute.getQuoteChar() );
+      writer.write( outputValue );
+      writer.write( attribute.getQuoteChar() );
+    }
   }
 
   private void processText( Segment segment ) {
@@ -179,7 +195,13 @@ public abstract class HtmlFilterReaderBase extends Reader {
         // This can happen for whitespace outside of the root element.
         //outputValue = filterText( null, inputValue );
       } else {
-        outputValue = filterText( stack.peek().getQName(), inputValue, null );
+        String tagName = stack.peek().getTag().getName();
+        if (SCRIPTTAG.equals(tagName) && config != null && !config.getSelectors().isEmpty() ) {
+          // embedded javascript content
+          outputValue = UrlRewriteUtil.filterJavaScript( inputValue, config, this, REGEX_COMPILER );
+        } else {
+          outputValue = filterText( stack.peek().getQName(), inputValue, null );
+        }
       }
       if( outputValue == null ) {
         outputValue = inputValue;
@@ -266,7 +288,7 @@ public abstract class HtmlFilterReaderBase extends Reader {
           if( name.toLowerCase().startsWith( "xmlns" ) ) {
             int colon = name.indexOf( ":", 5 );
             String prefix;
-            if( colon == 0 ) {
+            if( colon <= 0 ) {
               prefix = "";
             } else {
               prefix = name.substring( colon );

@@ -22,17 +22,21 @@
   <parent>
     <groupId>org.apache.knox</groupId>
     <artifactId>gateway</artifactId>
-    <version>0.6.0</version>
+    <version>0.9.0-SNAPSHOT</version>
   </parent>
   <groupId>org.apache.knox</groupId>
   <artifactId>gateway-service-knoxsso</artifactId>
-  <version>0.6.0</version>
+  <version>0.9.0-SNAPSHOT</version>
   <name>gateway-service-knoxsso</name>
   <url>http://maven.apache.org</url>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <dependencies>
+	  <dependency>
+	    <groupId>${gateway-group}</groupId>
+	    <artifactId>gateway-util-common</artifactId>
+	  </dependency>
 	  <dependency>
 	    <groupId>${gateway-group}</groupId>
 	    <artifactId>gateway-spi</artifactId>
@@ -50,5 +54,14 @@
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-  </dependencies>
+    <dependency>
+      <groupId>org.apache.knox</groupId>
+      <artifactId>gateway-test-utils</artifactId>
+      <scope>test</scope>
+    </dependency>
+      <dependency>
+          <groupId>org.easymock</groupId>
+          <artifactId>easymock</artifactId>
+          <scope>test</scope>
+      </dependency>  </dependencies>
 </project>

@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.6.0</version>
+        <version>0.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-test-utils</artifactId>
 
@@ -91,11 +91,13 @@
             <artifactId>jetty-servlet</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--
         <dependency>
             <groupId>org.eclipse.jetty.orbit</groupId>
             <artifactId>javax.servlet</artifactId>
             <scope>provided</scope>
         </dependency>
+        -->
 
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
@@ -118,6 +120,12 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.velocity</groupId>
+            <artifactId>velocity</artifactId>
             <scope>provided</scope>
         </dependency>
 

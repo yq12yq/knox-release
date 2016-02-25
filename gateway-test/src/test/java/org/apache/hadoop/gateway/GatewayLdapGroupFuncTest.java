@@ -18,6 +18,8 @@
 package org.apache.hadoop.gateway;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -28,6 +30,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.util.Enumeration;
@@ -44,6 +47,7 @@ import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
 import org.apache.hadoop.gateway.services.security.AliasService;
 import org.apache.hadoop.gateway.util.KnoxCLI;
+import org.apache.hadoop.test.TestUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Appender;
 import org.hamcrest.MatcherAssert;
@@ -65,6 +69,9 @@ import com.mycila.xmltool.XMLTag;
  */
 public class GatewayLdapGroupFuncTest {
 
+  private static final long SHORT_TIMEOUT = 2000L;
+  private static final long MEDIUM_TIMEOUT = 5 * 1000L;
+
   private static Class RESOURCE_BASE_CLASS = GatewayLdapGroupFuncTest.class;
   private static Logger LOG = LoggerFactory.getLogger( GatewayLdapGroupFuncTest.class );
 
@@ -73,22 +80,29 @@ public class GatewayLdapGroupFuncTest {
   public static GatewayServer gateway;
   public static String gatewayUrl;
   public static String clusterUrl;
+  public static String serviceUrl;
   public static SimpleLdapDirectoryServer ldap;
   public static TcpTransport ldapTransport;
 
   @BeforeClass
   public static void setupSuite() throws Exception {
+    LOG_ENTER();
     //appenders = NoOpAppender.setUp();
     int port = setupLdap();
     setupGateway(port);
+    TestUtils.awaitPortOpen( new InetSocketAddress( "localhost", port ), 10000, 100 );
+    TestUtils.awaitNon404HttpStatus( new URL( serviceUrl ), 10000, 100 );
+    LOG_EXIT();
   }
 
   @AfterClass
   public static void cleanupSuite() throws Exception {
+    LOG_ENTER();
     gateway.stop();
     ldap.stop( true );
     //FileUtils.deleteQuietly( new File( config.getGatewayHomeDir() ) );
     //NoOpAppender.tearDown( appenders );
+    LOG_EXIT();
   }
 
   public static int setupLdap() throws Exception {
@@ -102,7 +116,7 @@ public class GatewayLdapGroupFuncTest {
   }
 
   public static void setupGateway(int ldapPort) throws Exception {
-    
+
     File targetDir = new File( System.getProperty( "user.dir" ), "target" );
     File gatewayDir = new File( targetDir, "gateway-home-" + UUID.randomUUID() );
     gatewayDir.mkdirs();
@@ -117,22 +131,17 @@ public class GatewayLdapGroupFuncTest {
     File deployDir = new File( testConfig.getGatewayDeploymentDir() );
     deployDir.mkdirs();
 
-    File descriptor = new File( topoDir, "test-cluster.xml" );
-    FileOutputStream stream = new FileOutputStream( descriptor );
-    createTopology(ldapPort).toStream( stream );
-    stream.close();
-    
     DefaultGatewayServices srvcs = new DefaultGatewayServices();
     Map<String,String> options = new HashMap<String,String>();
     options.put( "persist-master", "true" );
     options.put( "master", "hadoop" );
-    
+
     try {
       srvcs.init( testConfig, options );
     } catch ( ServiceLifecycleException e ) {
       e.printStackTrace(); // I18N not required.
     }
-    
+
     /*
     System.setProperty(GatewayConfig.GATEWAY_HOME_VAR, gatewayDir.getAbsolutePath());
     System.err.println("GH 10: " + System.getProperty(GatewayConfig.GATEWAY_HOME_VAR));
@@ -142,18 +151,18 @@ public class GatewayLdapGroupFuncTest {
     KnoxCLI cli = new KnoxCLI();
     cli.setConf(new GatewayConfigImpl());
     cli.run(argvals);
-    
+
     outContent.reset();
     String[] args1 = {"list-alias", "--cluster", "test-cluster", "--master", "hadoop"};
     cli = new KnoxCLI();
     cli.run(args1);
     System.err.println("ALIAS LIST: " + outContent.toString());
-    
+
     AliasService as1 = cli.getGatewayServices().getService(GatewayServices.ALIAS_SERVICE);
     char[] passwordChars1 = as1.getPasswordFromAliasForCluster( "test-cluster", "ldcsystemPassword");
     System.err.println("ALIAS value1: " + new String(passwordChars1));
     */
-    
+
     gateway = GatewayServer.startGateway( testConfig, srvcs );
     MatcherAssert.assertThat( "Failed to start gateway.", gateway, notNullValue() );
 
@@ -161,33 +170,27 @@ public class GatewayLdapGroupFuncTest {
 
     gatewayUrl = "http://localhost:" + gateway.getAddresses()[0].getPort() + "/" + config.getGatewayPath();
     clusterUrl = gatewayUrl + "/test-cluster";
-    
+    serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
+
     ///*
     GatewayServices services = GatewayServer.getGatewayServices();
     AliasService aliasService = (AliasService)services.getService(GatewayServices.ALIAS_SERVICE);
     aliasService.addAliasForCluster("test-cluster", "ldcSystemPassword", "guest-password");
-  
+
     char[] password1 = aliasService.getPasswordFromAliasForCluster( "test-cluster", "ldcSystemPassword");
     //System.err.println("SETUP password 10: " + ((password1 == null) ? "NULL" : new String(password1)));
-    
-    descriptor = new File( topoDir, "test-cluster.xml" );
-    stream = new FileOutputStream( descriptor );
+
+    File descriptor = new File( topoDir, "test-cluster.xml" );
+    FileOutputStream stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
-    try {
-      Thread.sleep(5000);
-    } catch (Exception e) {
-      
-    }
-    //*/
   }
 
   private static XMLTag createTopology(int ldapPort) {
     XMLTag xml = XMLDoc.newDocument( true )
         .addRoot( "topology" )
         .addTag( "gateway" )
-        
+
         .addTag( "provider" )
         .addTag( "role" ).addText( "authentication" )
         .addTag( "name" ).addText( "ShiroProvider" )
@@ -240,7 +243,7 @@ public class GatewayLdapGroupFuncTest {
         .gotoParent().addTag( "param" )
         .addTag( "name" ).addText( "urls./**" )
         .addTag( "value" ).addText( "authcBasic" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "authorization" )
         .addTag( "name" ).addText( "AclsAuthz" )
@@ -248,12 +251,12 @@ public class GatewayLdapGroupFuncTest {
         .addTag( "param" )
         .addTag( "name" ).addText( "test-service-role.acl" ) // FIXME[dilli]
         .addTag( "value" ).addText( "*;analyst;*" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "identity-assertion" )
         .addTag( "enabled" ).addText( "true" )
         .addTag( "name" ).addText( "Default" ).gotoParent()
-        
+
         .gotoRoot()
         .addTag( "service" )
         .addTag( "role" ).addText( "test-service-role" )
@@ -293,8 +296,9 @@ public class GatewayLdapGroupFuncTest {
     System.in.read();
   }
 
-  @Test
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testGroupMember() throws ClassNotFoundException, Exception {
+    LOG_ENTER();
     String username = "sam";
     String password = "sam-password";
     String serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
@@ -307,11 +311,12 @@ public class GatewayLdapGroupFuncTest {
         .contentType( "text/plain" )
         .body( is( "test-service-response" ) )
         .when().get( serviceUrl );
+    LOG_EXIT();
   }
-  
-  @Test
-  public void testNonGroupMember() throws ClassNotFoundException {
 
+  @Test( timeout = MEDIUM_TIMEOUT )
+  public void testNonGroupMember() throws ClassNotFoundException {
+    LOG_ENTER();
     String username = "guest";
     String password = "guest-password";
     String serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
@@ -322,6 +327,7 @@ public class GatewayLdapGroupFuncTest {
         //.log().all()
         .statusCode( HttpStatus.SC_FORBIDDEN )
         .when().get( serviceUrl );
+    LOG_EXIT();
   }
 
 }

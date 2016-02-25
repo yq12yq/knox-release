@@ -26,7 +26,7 @@
     </parent>
     <groupId>org.apache.knox</groupId>
     <artifactId>gateway</artifactId>
-    <version>0.6.0</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>gateway</name>
@@ -58,7 +58,9 @@
         <module>gateway-provider-security-preauth</module>
         <module>gateway-provider-security-hadoopauth</module>
         <module>gateway-provider-security-shiro</module>
+        <module>gateway-provider-security-pac4j</module>
         <module>gateway-provider-security-authz-acls</module>
+        <module>gateway-provider-security-authc-anon</module>
         <module>gateway-provider-identity-assertion-common</module>
         <module>gateway-provider-identity-assertion-concat</module>
         <module>gateway-provider-identity-assertion-regex</module>
@@ -81,9 +83,9 @@
         <module>hadoop-examples</module>
         <module>gateway-release</module>
         <module>gateway-test</module>
-        <module>hsso-release</module>
         <module>gateway-service-vault</module>
         <module>gateway-service-test</module>
+        <module>gateway-test-release</module>
     </modules>
 
     <properties>
@@ -94,10 +96,12 @@
         <gateway-name>Apache Knox</gateway-name>
         <gateway-project>knox</gateway-project>
         <gateway-artifact>knox</gateway-artifact>
-        <gateway-version>0.6.0</gateway-version>
+        <gateway-version>0.9.0-SNAPSHOT</gateway-version>
         <gateway-group>org.apache.knox</gateway-group>
         <hadoop-version>2.2.0</hadoop-version>
-        <jetty-version>8.1.14.v20131031</jetty-version>
+        <jetty-version>8.1.18.v20150929</jetty-version>
+        <surefire-version>2.16</surefire-version>
+        <failsafe-version>2.19.1</failsafe-version>
     </properties>
 
     <licenses>
@@ -132,14 +136,7 @@
         </snapshotRepository>
     </distributionManagement>
 
-
     <profiles>
-        <profile>
-            <id>windows</id>
-            <modules>
-                <module>winpkg</module>
-            </modules>
-        </profile>
         <profile>
             <id>analyze</id>
             <build>
@@ -177,36 +174,23 @@
                     </plugin>
                 </plugins>
             </build>
+            <properties>
+                <failsafe.group>org.apache.hadoop.test.category.VerifyTest,org.apache.hadoop.test.category.ReleaseTest</failsafe.group>
+            </properties>
+        </profile>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <failsafe.group>org.apache.hadoop.test.category.VerifyTest</failsafe.group>
+            </properties>
         </profile>
     </profiles>
 
     <build>
-
-      <pluginManagement>
         <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-source-plugin</artifactId>
-            <version>2.4</version>
-          </plugin>
-        </plugins>
-      </pluginManagement>
-
-      <plugins>
-            <plugin>
-              <groupId>org.apache.maven.plugins</groupId>
-              <artifactId>maven-source-plugin</artifactId>
-              <executions>
-                <execution>
-                  <id>attach-sources</id>
-                  <phase>verify</phase>
-                  <goals>
-                    <goal>jar-no-fork</goal>
-                    <goal>test-jar-no-fork</goal>
-                  </goals>
-                </execution>
-              </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
                 <artifactId>apache-rat-plugin</artifactId>
@@ -227,6 +211,7 @@
                         <exclude>.svn/**</exclude>
                         <exclude>.idea/**</exclude>
                         <exclude>dev-support/**</exclude>
+                        <exclude>test-patch/**</exclude>
                         <exclude>**/.gitignore/**</exclude>
                         <exclude>**/.project/**</exclude>
                         <exclude>**/.settings/**</exclude>
@@ -239,7 +224,6 @@
                         <exclude>**/candidate/**</exclude>
                         <exclude>**/patch/**</exclude>
                         <exclude>**/CHANGES</exclude>
-                        <exclude>**/HDP-CHANGES</exclude>
                         <exclude>**/ISSUES</exclude>
                         <exclude>**/patchprocess/**</exclude>
                         <exclude>**/test/resources/**</exclude>
@@ -272,17 +256,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>3.3</version>
                 <configuration>
                     <compilerId>javac</compilerId>
                     <source>1.7</source>
                     <target>1.7</target>
                     <debug>true</debug>
-                    <!--
-                    <verbose>true</verbose>
-                    <forceJavacCompilerUse>true</forceJavacCompilerUse>
-                    <fork>true</fork>
-                    -->
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -294,10 +273,10 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.16</version>
+                <version>${surefire-version}</version>
                 <configuration>
                     <excludedGroups>
-                        org.apache.hadoop.test.category.SlowTests,org.apache.hadoop.test.category.ManualTests,org.apache.hadoop.test.category.IntegrationTests
+                        org.apache.hadoop.test.category.SlowTests,org.apache.hadoop.test.category.ManualTests,org.apache.hadoop.test.category.VerifyTest,org.apache.hadoop.test.category.ReleaseTest
                     </excludedGroups>
                     <systemPropertyVariables>
                         <gateway-version>${gateway-version}</gateway-version>
@@ -305,29 +284,27 @@
                 </configuration>
             </plugin>
             <plugin>
-               <groupId>com.google.code.maven-replacer-plugin</groupId>
-               <artifactId>replacer</artifactId>
-               <version>1.5.2</version>
-                  <executions>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${failsafe-version}</version>
+                <configuration>
+                    <groups>${failsafe.group}</groups>
+                </configuration>
+                <executions>
                     <execution>
-                      <goals>
-                        <goal>replace</goal>
-                      </goals>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <includes>
+                                <include>**/*.java</include>
+                            </includes>
+                        </configuration>
                     </execution>
-                  </executions>
-                  <configuration>
-                    <includes>
-                      <include>winpkg/src/scripts/*</include>
-                    </includes>
-                    <replacements>
-                      <replacement>
-                        <token>@knox.version@</token>
-                        <value>${project.version}</value>
-                      </replacement>
-                    </replacements>
-                  </configuration>
+                </executions>
             </plugin>
-      </plugins>
+        </plugins>
     </build>
 
     <reporting>
@@ -456,6 +433,11 @@
             </dependency>
             <dependency>
                 <groupId>${gateway-group}</groupId>
+                <artifactId>gateway-provider-security-pac4j</artifactId>
+                <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-provider-security-webappsec</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
@@ -472,6 +454,11 @@
             <dependency>
                 <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-provider-security-hadoopauth</artifactId>
+                <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${gateway-group}</groupId>
+                <artifactId>gateway-provider-security-authc-anon</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
             <dependency>
@@ -634,11 +621,6 @@
                 <artifactId>gateway-release</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
-            <dependency>
-                <groupId>${gateway-group}</groupId>
-                <artifactId>hsso-release</artifactId>
-                <version>${gateway-version}</version>
-            </dependency>
 
         <dependency>
             <groupId>org.picketlink</groupId>
@@ -663,7 +645,7 @@
             <dependency>
               <groupId>com.nimbusds</groupId>
               <artifactId>nimbus-jose-jwt</artifactId>
-              <version>3.9</version>
+              <version>4.11</version>
               <scope>compile</scope>
               <exclusions>
                 <exclusion>
@@ -688,10 +670,18 @@
                 <version>${jetty-version}</version>
             </dependency>
             <dependency>
+                <groupId>javax.servlet</groupId>
+                <artifactId>javax.servlet-api</artifactId>
+                <version>3.0.1</version>
+            </dependency>
+
+            <!--
+            <dependency>
                 <groupId>org.eclipse.jetty.orbit</groupId>
                 <artifactId>javax.servlet</artifactId>
                 <version>3.0.0.v201112011016</version>
             </dependency>
+            -->
             <!--
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
@@ -709,6 +699,12 @@
                 <groupId>org.eclipse.persistence</groupId>
                 <artifactId>eclipselink</artifactId>
                 <version>2.5.2</version>
+            </dependency>
+
+           <dependency>
+                <groupId>com.thetransactioncompany</groupId>
+                <artifactId>cors-filter</artifactId>
+                <version>2.4</version>
             </dependency>
 
             <dependency>
@@ -730,6 +726,11 @@
                 <groupId>org.apache.httpcomponents</groupId>
                 <artifactId>httpclient</artifactId>
                 <version>4.3.6</version>
+            </dependency>
+            <dependency>
+                <groupId>joda-time</groupId>
+                <artifactId>joda-time</artifactId>
+                <version>2.9.2</version>
             </dependency>
 
             <!--
@@ -922,7 +923,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.1</version>
+                <version>3.4</version>
             </dependency>
             <dependency>
                 <groupId>commons-cli</groupId>
@@ -958,22 +959,22 @@
             <dependency>
                 <groupId>org.jboss.shrinkwrap</groupId>
                 <artifactId>shrinkwrap-api</artifactId>
-                <version>1.0.1</version>
+                <version>1.2.3</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.shrinkwrap</groupId>
                 <artifactId>shrinkwrap-impl-base</artifactId>
-                <version>1.0.1</version>
+                <version>1.2.3</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.shrinkwrap.descriptors</groupId>
                 <artifactId>shrinkwrap-descriptors-api-javaee</artifactId>
-                <version>2.0.0-alpha-4</version>
+                <version>2.0.0-alpha-8</version>
             </dependency>
             <dependency>
                 <groupId>org.jboss.shrinkwrap.descriptors</groupId>
                 <artifactId>shrinkwrap-descriptors-impl-javaee</artifactId>
-                <version>2.0.0-alpha-4</version>
+                <version>2.0.0-alpha-8</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.directory.server</groupId>
@@ -1021,6 +1022,17 @@
                 <version>1.2.3</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.zookeeper</groupId>
+                <artifactId>zookeeper</artifactId>
+                <version>3.4.6</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-framework</artifactId>
+                <version>2.6.0</version>
+            </dependency>
+
             <!-- Html pull parser.  EPLv1 license -->
             <dependency>
                 <groupId>net.htmlparser.jericho</groupId>
@@ -1037,6 +1049,11 @@
                 <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-demo-ldap-launcher</artifactId>
                 <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.lingala.zip4j</groupId>
+                <artifactId>zip4j</artifactId>
+                <version>1.3.2</version>
             </dependency>
 
             <!-- ********** ********** ********** ********** ********** ********** -->
@@ -1086,7 +1103,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>4.11</version>
+                <version>4.12</version>
             </dependency>
 
             <dependency>
@@ -1100,7 +1117,7 @@
                 <groupId>org.apache.velocity</groupId>
                 <artifactId>velocity</artifactId>
                 <version>1.7</version>
-                <scope>test</scope>
+                <!--scope>test</scope-->
             </dependency>
 
             <dependency>
@@ -1128,6 +1145,14 @@
                 <version>0.9.1</version>
                 <scope>test</scope>
             </dependency>
+
+            <dependency>
+                <groupId>org.apache.curator</groupId>
+                <artifactId>curator-test</artifactId>
+                <version>2.6.0</version>
+                <scope>test</scope>
+            </dependency>
+
 
         </dependencies>
     </dependencyManagement>

@@ -19,9 +19,6 @@ package org.apache.hadoop.gateway.service.knoxsso.deploy;
 
 import org.apache.hadoop.gateway.jersey.JerseyServiceDeploymentContributorBase;
 
-/**
- *
- */
 public class KnoxSSOServiceDeploymentContributor extends JerseyServiceDeploymentContributorBase {
 
   /* (non-Javadoc)
@@ -29,7 +26,6 @@ public class KnoxSSOServiceDeploymentContributor extends JerseyServiceDeployment
    */
   @Override
   public String getRole() {
-    // TODO Auto-generated method stub
     return "KNOXSSO";
   }
 
@@ -54,7 +50,7 @@ public class KnoxSSOServiceDeploymentContributor extends JerseyServiceDeployment
    */
   @Override
   protected String[] getPatterns() {
-    return new String[]{ "knoxsso/api/**?**" };
+    return new String[]{ "api/**?**" };
   }
 
 }

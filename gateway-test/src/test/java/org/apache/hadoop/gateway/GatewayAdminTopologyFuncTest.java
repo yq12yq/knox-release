@@ -17,6 +17,20 @@
  */
 package org.apache.hadoop.gateway;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.ServerSocket;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import javax.ws.rs.core.MediaType;
+
 import com.jayway.restassured.http.ContentType;
 import com.mycila.xmltool.XMLDoc;
 import com.mycila.xmltool.XMLTag;
@@ -37,34 +51,27 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.ws.rs.core.MediaType;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.ServerSocket;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import static com.jayway.restassured.RestAssured.given;
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class GatewayAdminTopologyFuncTest {
+
+  private static final long SHORT_TIMEOUT = 1000L;
+  private static final long MEDIUM_TIMEOUT = 5 * SHORT_TIMEOUT;
+  private static final long LONG_TIMEOUT = 5 * MEDIUM_TIMEOUT;
 
   private static Class RESOURCE_BASE_CLASS = GatewayAdminTopologyFuncTest.class;
   private static Logger LOG = LoggerFactory.getLogger( GatewayAdminTopologyFuncTest.class );
@@ -81,7 +88,7 @@ public class GatewayAdminTopologyFuncTest {
   public static void setupSuite() throws Exception {
     //appenders = NoOpAppender.setUp();
     setupLdap();
-    setupGateway();
+    setupGateway(new GatewayTestConfig());
   }
 
   @AfterClass
@@ -101,13 +108,12 @@ public class GatewayAdminTopologyFuncTest {
     LOG.info( "LDAP port = " + ldapTransport.getPort() );
   }
 
-  public static void setupGateway() throws Exception {
+  public static void setupGateway(GatewayTestConfig testConfig) throws Exception {
 
     File targetDir = new File( System.getProperty( "user.dir" ), "target" );
     File gatewayDir = new File( targetDir, "gateway-home-" + UUID.randomUUID() );
     gatewayDir.mkdirs();
 
-    GatewayTestConfig testConfig = new GatewayTestConfig();
     config = testConfig;
     testConfig.setGatewayHomeDir( gatewayDir.getAbsolutePath() );
 
@@ -126,7 +132,6 @@ public class GatewayAdminTopologyFuncTest {
     FileOutputStream stream2 = new FileOutputStream( descriptor2 );
     createNormalTopology().toStream( stream2 );
     stream.close();
-
 
     DefaultGatewayServices srvcs = new DefaultGatewayServices();
     Map<String,String> options = new HashMap<String,String>();
@@ -231,7 +236,6 @@ public class GatewayAdminTopologyFuncTest {
         .addTag( "role" ).addText( "identity-assertion" )
         .addTag( "enabled" ).addText( "true" )
         .addTag( "name" ).addText( "Default" ).gotoParent()
-        .addTag( "provider" )
         .gotoRoot()
         .addTag( "service" )
         .addTag( "role" ).addText( "KNOX" )
@@ -265,14 +269,14 @@ public class GatewayAdminTopologyFuncTest {
     return RESOURCE_BASE_CLASS.getName().replaceAll( "\\.", "/" ) + "/";
   }
 
-  @Ignore
-  @Test
+  //@Test
   public void waitForManualTesting() throws IOException {
     System.in.read();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testTopologyCollection() throws ClassNotFoundException {
+    LOG_ENTER();
 
     String username = "admin";
     String password = "admin-password";
@@ -306,9 +310,6 @@ public class GatewayAdminTopologyFuncTest {
         .when().get(serviceUrl);
 
 
-
-
-
     given()
         //.log().all()
         .auth().preemptive().basic(username, password)
@@ -327,10 +328,12 @@ public class GatewayAdminTopologyFuncTest {
         .body("topology.name", equalTo("test-cluster"))
         .when().get(href1);
 
+    LOG_EXIT();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testTopologyObject() throws ClassNotFoundException {
+    LOG_ENTER();
 
     String username = "admin";
     String password = "admin-password";
@@ -387,11 +390,12 @@ public class GatewayAdminTopologyFuncTest {
         .when()
         .get(hrefXml);
 
+    LOG_EXIT();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testPositiveAuthorization() throws ClassNotFoundException{
-
+    LOG_ENTER();
 
     String adminUser = "admin";
     String adminPass = "admin-password";
@@ -414,10 +418,12 @@ public class GatewayAdminTopologyFuncTest {
         .body("topologies.topology[1].timestamp", not(nullValue()))
         .get(url);
 
+    LOG_EXIT();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testNegativeAuthorization() throws ClassNotFoundException{
+    LOG_ENTER();
 
     String guestUser = "guest";
     String guestPass = "guest-password";
@@ -431,8 +437,7 @@ public class GatewayAdminTopologyFuncTest {
         .statusCode(HttpStatus.SC_FORBIDDEN)
         .get(url);
 
-
-
+    LOG_EXIT();
   }
 
   private Topology createTestTopology(){
@@ -497,8 +502,9 @@ public class GatewayAdminTopologyFuncTest {
     return topology;
   }
 
-  @Test
-  public void testDeployTopology() throws ClassNotFoundException {
+  @Test( timeout = LONG_TIMEOUT )
+  public void testDeployTopology() throws Exception {
+    LOG_ENTER();
 
     Topology testTopology = createTestTopology();
 
@@ -510,46 +516,49 @@ public class GatewayAdminTopologyFuncTest {
     GatewayServices srvs = GatewayServer.getGatewayServices();
 
     TopologyService ts = srvs.getService(GatewayServices.TOPOLOGY_SERVICE);
+    try {
+      ts.stopMonitor();
 
-    assertThat(testTopology, not(nullValue()));
-    assertThat(testTopology.getName(), is("test-topology"));
+      assertThat( testTopology, not( nullValue() ) );
+      assertThat( testTopology.getName(), is( "test-topology" ) );
 
-    given()
-        //.log().all()
-        .auth().preemptive().basic(user, password)
-        .expect()
-        //.log().all()
-        .statusCode(HttpStatus.SC_NOT_FOUND)
-        .when()
-        .get(url);
+      given()
+          //.log().all()
+          .auth().preemptive().basic( "admin", "admin-password" ).header( "Accept", MediaType.APPLICATION_JSON ).expect()
+          //.log().all()
+          .statusCode( HttpStatus.SC_OK ).body( containsString( "ServerVersion" ) ).when().get( gatewayUrl + "/admin/api/v1/version" );
 
-    ts.deployTopology(testTopology);
+      given()
+          //.log().all()
+          .auth().preemptive().basic( user, password ).expect()
+          //.log().all()
+          .statusCode( HttpStatus.SC_NOT_FOUND ).when().get( url );
 
-    given()
-        //.log().all()
-        .auth().preemptive().basic(user, password)
-        .expect()
-        //.log().all()
-        .statusCode(HttpStatus.SC_OK)
-        .contentType("text/plain")
-        .body(is("test-service-response"))
-        .when()
-        .get(url).getBody();
+      ts.deployTopology( testTopology );
 
-    ts.deleteTopology(testTopology);
+      given()
+          //.log().all()
+          .auth().preemptive().basic( user, password ).expect()
+          //.log().all()
+          .statusCode( HttpStatus.SC_OK ).contentType( "text/plain" ).body( is( "test-service-response" ) ).when().get( url ).getBody();
 
-    given()
-        //.log().all()
-        .auth().preemptive().basic(user, password)
-        .expect()
-        //.log().all()
-        .statusCode(HttpStatus.SC_NOT_FOUND)
-        .when()
-        .get(url);
+      ts.deleteTopology( testTopology );
+
+      given()
+          //.log().all()
+          .auth().preemptive().basic( user, password ).expect()
+          //.log().all()
+          .statusCode( HttpStatus.SC_NOT_FOUND ).when().get( url );
+    } finally {
+      ts.startMonitor();
+    }
+
+    LOG_EXIT();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testDeleteTopology() throws ClassNotFoundException {
+    LOG_ENTER();
 
     Topology test = createTestTopology();
 
@@ -586,10 +595,13 @@ public class GatewayAdminTopologyFuncTest {
         //.log().all()
         .statusCode(HttpStatus.SC_NO_CONTENT)
         .get(url);
+
+    LOG_EXIT();
   }
 
-  @Test
+  @Test( timeout = LONG_TIMEOUT )
   public void testPutTopology() throws ClassNotFoundException {
+    LOG_ENTER() ;
 
     String username = "admin";
     String password = "admin-password";
@@ -651,7 +663,171 @@ public class GatewayAdminTopologyFuncTest {
         .get(url)
         .getBody().asString();
 
-
+    LOG_EXIT();
   }
+
+  @Test( timeout = LONG_TIMEOUT )
+  public void testXForwardedHeaders() {
+    LOG_ENTER();
+
+    String username = "admin";
+    String password = "admin-password";
+    String url =  clusterUrl + "/api/v1/topologies";
+
+//    X-Forward header values
+    String port = String.valueOf(777);
+    String server = "myserver";
+    String host = server + ":" + port;
+    String proto = "protocol";
+    String context = "/mycontext";
+    String newUrl = proto + "://" + host + context;
+//    String port = String.valueOf(gateway.getAddresses()[0].getPort());
+
+//     Case 1: Add in all x-forward headers (host, port, server, context, proto)
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .header("X-Forwarded-Host", host )
+        .header("X-Forwarded-Port", port )
+        .header("X-Forwarded-Server", server )
+        .header("X-Forwarded-Context", context)
+        .header("X-Forwarded-Proto", proto)
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(newUrl))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+
+//     Case 2: add in x-forward headers (host, server, proto, context)
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .header("X-Forwarded-Host", host )
+        .header("X-Forwarded-Server", server )
+        .header("X-Forwarded-Context", context )
+        .header("X-Forwarded-Proto", proto )
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(server))
+        .body(containsString(context))
+        .body(containsString(proto))
+        .body(containsString(host))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+//     Case 3: add in x-forward headers (host, proto, port, context)
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .header("X-Forwarded-Host", host )
+        .header("X-Forwarded-Port", port )
+        .header("X-Forwarded-Context", context )
+        .header("X-Forwarded-Proto", proto)
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(host))
+        .body(containsString(port))
+        .body(containsString(context))
+        .body(containsString(proto))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+//     Case 4: add in x-forward headers (host, proto, port, context) no port in host.
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .header("X-Forwarded-Host", server)
+        .header("X-Forwarded-Port", port)
+        .header("X-Forwarded-Context", context)
+        .header("X-Forwarded-Proto", proto)
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(server))
+        .body(containsString(port))
+        .body(containsString(context))
+        .body(containsString(proto))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+//     Case 5: add in x-forward headers (host, port)
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .header("X-Forwarded-Host", host )
+        .header("X-Forwarded-Port", port )
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(host))
+        .body(containsString(port))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+//     Case 6: Normal Request
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(url))
+        .body(containsString("test-cluster"))
+        .body(containsString("admin"))
+        .get(url);
+
+    LOG_EXIT();
+  }
+
+  @Test( timeout = LONG_TIMEOUT )
+  public void testGatewayPathChange() throws Exception {
+    LOG_ENTER();
+    String username = "admin";
+    String password = "admin-password";
+    String url =  clusterUrl + "/api/v1/topologies";
+
+//     Case 1: Normal Request (No Change in gateway.path). Ensure HTTP OK resp + valid URL.
+    given()
+        .auth().preemptive().basic(username, password)
+        .header("Accept", MediaType.APPLICATION_XML)
+        .expect()
+        .statusCode(HttpStatus.SC_OK)
+        .body(containsString(url + "/test-cluster"))
+        .get(url);
+
+
+//     Case 2: Change gateway.path to another String. Ensure HTTP OK resp + valid URL.
+   try {
+     gateway.stop();
+
+     GatewayTestConfig conf = new GatewayTestConfig();
+     conf.setGatewayPath("new-gateway-path");
+     setupGateway(conf);
+
+     String newUrl = clusterUrl + "/api/v1/topologies";
+
+     given()
+         .auth().preemptive().basic(username, password)
+         .header("Accept", MediaType.APPLICATION_XML)
+         .expect()
+         .statusCode(HttpStatus.SC_OK)
+         .body(containsString(newUrl + "/test-cluster"))
+         .get(newUrl);
+   } catch(Exception e){
+     fail(e.getMessage());
+   }
+    finally {
+//        Restart the gateway with old settings.
+       gateway.stop();
+      setupGateway(new GatewayTestConfig());
+    }
+
+    LOG_EXIT();
+  }
+
+  private static final String CLASS = GatewayAdminTopologyFuncTest.class.getCanonicalName();
 
 }

@@ -18,11 +18,10 @@
 package org.apache.hadoop.gateway.service.knoxsso;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.security.Principal;
-import java.util.Date;
 
+import javax.annotation.PostConstruct;
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -37,33 +36,82 @@ import javax.ws.rs.WebApplicationException;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.security.token.JWTokenAuthority;
+import org.apache.hadoop.gateway.services.security.token.TokenServiceException;
 import org.apache.hadoop.gateway.services.security.token.impl.JWT;
+import org.apache.hadoop.gateway.util.RegExUtils;
+import org.apache.hadoop.gateway.util.Urls;
 
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.MediaType.APPLICATION_XML;
 
 @Path( WebSSOResource.RESOURCE_PATH )
 public class WebSSOResource {
-  /**
-   * 
-   */
+  private static final String SSO_COOKIE_SECURE_ONLY_INIT_PARAM = "knoxsso.cookie.secure.only";
+  private static final String SSO_COOKIE_MAX_AGE_INIT_PARAM = "knoxsso.cookie.max.age";
+  private static final String SSO_COOKIE_DOMAIN_SUFFIX_PARAM = "knoxsso.cookie.domain.suffix";
+  private static final String SSO_COOKIE_TOKEN_TTL_PARAM = "knoxsso.token.ttl";
+  private static final String SSO_COOKIE_TOKEN_WHITELIST_PARAM = "knoxsso.redirect.whitelist.regex";
   private static final String ORIGINAL_URL_REQUEST_PARAM = "originalUrl";
-  /**
-   * 
-   */
   private static final String ORIGINAL_URL_COOKIE_NAME = "original-url";
-  /**
-   * 
-   */
   private static final String JWT_COOKIE_NAME = "hadoop-jwt";
-  static final String RESOURCE_PATH = "/knoxsso/api/v1/websso";
+  // default for the whitelist - open up for development - relative paths and localhost only
+  private static final String DEFAULT_WHITELIST = "^/.*$;^https?://(localhost|127.0.0.1|0:0:0:0:0:0:0:1|::1):\\d{0,9}/.*$";
+  static final String RESOURCE_PATH = "/api/v1/websso";
   private static KnoxSSOMessages log = MessagesFactory.get( KnoxSSOMessages.class );
+  private boolean secureOnly = true;
+  private int maxAge = -1;
+  private long tokenTTL = 30000l;
+  private String whitelist = null;
+  private String domainSuffix = null;
 
-  @Context 
+  @Context
   private HttpServletRequest request;
 
-  @Context 
+  @Context
   private HttpServletResponse response;
+
+  @Context
+  ServletContext context;
+
+  @PostConstruct
+  public void init() {
+    String secure = context.getInitParameter(SSO_COOKIE_SECURE_ONLY_INIT_PARAM);
+    if (secure != null) {
+      secureOnly = ("false".equals(secure) ? false : true);
+      if (!secureOnly) {
+        log.cookieSecureOnly(secureOnly);
+      }
+    }
+
+    String age = context.getInitParameter(SSO_COOKIE_MAX_AGE_INIT_PARAM);
+    if (age != null) {
+      try {
+        log.setMaxAge(age);
+        maxAge = Integer.parseInt(age);
+      }
+      catch (NumberFormatException nfe) {
+        log.invalidMaxAgeEncountered(age);
+      }
+    }
+
+    domainSuffix = context.getInitParameter(SSO_COOKIE_DOMAIN_SUFFIX_PARAM);
+
+    whitelist = context.getInitParameter(SSO_COOKIE_TOKEN_WHITELIST_PARAM);
+    if (whitelist == null) {
+      // default to local/relative targets
+      whitelist = DEFAULT_WHITELIST;
+    }
+
+    String ttl = context.getInitParameter(SSO_COOKIE_TOKEN_TTL_PARAM);
+    if (ttl != null) {
+      try {
+        tokenTTL = Long.parseLong(ttl);
+      }
+      catch (NumberFormatException nfe) {
+        log.invalidTokenTTLEncountered(ttl);
+      }
+    }
+  }
 
   @GET
   @Produces({APPLICATION_JSON, APPLICATION_XML})
@@ -79,11 +127,11 @@ public class WebSSOResource {
 
   private Response getAuthenticationToken(int statusCode) {
     GatewayServices services = (GatewayServices) request.getServletContext()
-        .getAttribute(GatewayServices.GATEWAY_SERVICES_ATTRIBUTE);
+            .getAttribute(GatewayServices.GATEWAY_SERVICES_ATTRIBUTE);
     boolean removeOriginalUrlCookie = true;
     String original = getCookieValue((HttpServletRequest) request, ORIGINAL_URL_COOKIE_NAME);
     if (original == null) {
-      // in the case where there is no SAML redirects done before here
+      // in the case where there are no SAML redirects done before here
       // we need to get it from the request parameters
       removeOriginalUrlCookie = false;
       original = request.getParameter(ORIGINAL_URL_REQUEST_PARAM);
@@ -91,40 +139,57 @@ public class WebSSOResource {
         log.originalURLNotFound();
         throw new WebApplicationException("Original URL not found in the request.", Response.Status.BAD_REQUEST);
       }
+      boolean validRedirect = RegExUtils.checkWhitelist(whitelist, original);
+      if (!validRedirect) {
+        log.whiteListMatchFail(original, whitelist);
+        throw new WebApplicationException("Original URL not valid according to the configured whitelist.",
+                Response.Status.BAD_REQUEST);
+      }
     }
-    
+
     JWTokenAuthority ts = services.getService(GatewayServices.TOKEN_SERVICE);
     Principal p = ((HttpServletRequest)request).getUserPrincipal();
 
-    JWT token = ts.issueToken(p, "RS256");
-    
-    addJWTHadoopCookie(original, token);
-    
-    if (removeOriginalUrlCookie) {
-      removeOriginalUrlCookie(response);
-    }
-    
-    log.aboutToRedirectToOriginal(original);
-    response.setStatus(statusCode);
-    response.setHeader("Location", original);
     try {
-      response.getOutputStream().close();
-    } catch (IOException e) {
-      log.unableToCloseOutputStream(e.getMessage(), e.getStackTrace().toString());
+      JWT token = ts.issueToken(p, "RS256", System.currentTimeMillis() + tokenTTL);
+
+      addJWTHadoopCookie(original, token);
+
+      if (removeOriginalUrlCookie) {
+        removeOriginalUrlCookie(response);
+      }
+
+      log.aboutToRedirectToOriginal(original);
+      response.setStatus(statusCode);
+      response.setHeader("Location", original);
+      try {
+        response.getOutputStream().close();
+      } catch (IOException e) {
+        log.unableToCloseOutputStream(e.getMessage(), e.getStackTrace().toString());
+      }
+    }
+    catch (TokenServiceException e) {
+      log.unableToIssueToken(e);
     }
     return null;
   }
 
-  public void addJWTHadoopCookie(String original, JWT token) {
+  private void addJWTHadoopCookie(String original, JWT token) {
     log.addingJWTCookie(token.toString());
     Cookie c = new Cookie(JWT_COOKIE_NAME,  token.toString());
     c.setPath("/");
     try {
-      String domain = getDomainName(original);
-      c.setDomain(domain);
+      String domain = Urls.getDomainName(original, domainSuffix);
+      if (domain != null) {
+        c.setDomain(domain);
+      }
       c.setHttpOnly(true);
-      c.setSecure(true);
-      c.setMaxAge(120);
+      if (secureOnly) {
+        c.setSecure(true);
+      }
+      if (maxAge != -1) {
+        c.setMaxAge(maxAge);
+      }
       response.addCookie(c);
       log.addedJWTCookie();
     }
@@ -141,22 +206,12 @@ public class WebSSOResource {
     response.addCookie(c);
   }
 
-  public String getDomainName(String url) throws URISyntaxException {
-    URI uri = new URI(url);
-    String domain = uri.getHost();
-    int idx = domain.indexOf('.');
-    if (idx == -1) {
-      idx = 0;
-    }
-    return domain.startsWith("www.") ? domain.substring(4) : domain.substring(idx);
-  }
-
   private String getCookieValue(HttpServletRequest request, String name) {
     Cookie[] cookies = request.getCookies();
     String value = null;
     for(Cookie cookie : cookies){
       if(name.equals(cookie.getName())){
-          value = cookie.getValue();
+        value = cookie.getValue();
       }
     }
     if (value == null) {

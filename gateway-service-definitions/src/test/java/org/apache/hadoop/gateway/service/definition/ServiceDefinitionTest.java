@@ -24,7 +24,8 @@ import javax.xml.bind.Unmarshaller;
 import java.net.URL;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class ServiceDefinitionTest {
 
@@ -39,6 +40,7 @@ public class ServiceDefinitionTest {
     assertEquals("1.0.0", definition.getVersion());
     assertEquals("custom-client", definition.getDispatch().getContributorName());
     assertEquals("ha-client", definition.getDispatch().getHaContributorName());
+    assertEquals("org.apache.hadoop.gateway.MockHttpClientFactory", definition.getDispatch().getHttpClientFactory());
     List<Policy> policies = definition.getPolicies();
     assertEquals(5, policies.size());
     String[] policyOrder = new String[]{"webappsec", "authentication", "rewrite", "identity-assertion", "authorization"};
@@ -57,6 +59,8 @@ public class ServiceDefinitionTest {
     for (int i=0; i< policyOrder.length; i++ ) {
       assertEquals(policyOrder[i], policies.get(i).getRole());
     }
+    assertNotNull(definition.getTestURLs());
+    assertEquals(2, definition.getTestURLs().size());
   }
 
   @Test

@@ -17,6 +17,25 @@
  */
 package org.apache.hadoop.gateway.util;
 
+import java.io.BufferedReader;
+import java.io.Console;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.UUID;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -29,11 +48,11 @@ import org.apache.hadoop.gateway.services.CLIGatewayServices;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.Service;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
-import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.services.security.AliasService;
 import org.apache.hadoop.gateway.services.security.KeystoreService;
 import org.apache.hadoop.gateway.services.security.KeystoreServiceException;
 import org.apache.hadoop.gateway.services.security.MasterService;
+import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.topology.Provider;
 import org.apache.hadoop.gateway.topology.Topology;
 import org.apache.hadoop.gateway.topology.validation.TopologyValidator;
@@ -58,26 +77,7 @@ import org.apache.shiro.util.Factory;
 import org.apache.shiro.util.ThreadContext;
 import org.eclipse.persistence.oxm.MediaType;
 import org.jboss.shrinkwrap.api.exporter.ExplodedExporter;
-import org.jboss.shrinkwrap.api.spec.WebArchive;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLException;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintStream;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.UUID;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.Console;
+import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
 /**
  *
  */
@@ -540,12 +540,12 @@ public class KnoxCLI extends Configured implements Tool {
 
   public static final String USAGE = "create-alias aliasname [--cluster clustername] " +
                                      "[ (--value v) | (--generate) ]";
-  public static final String DESC = "The create-alias command will create an alias\n" +
-                                    "and secret pair within the credential store for the\n" +
-                                    "indicated --cluster otherwise within the gateway\n" +
-                                    "credential store. The actual secret may be specified via\n" +
-                                    "the --value option or --generate will create a random secret\n" +
-                                    "for you.";
+  public static final String DESC = "The create-alias command will create an alias\n"
+                                       + "and secret pair within the credential store for the\n"
+                                       + "indicated --cluster otherwise within the gateway\n"
+                                       + "credential store. The actual secret may be specified via\n"
+                                       + "the --value option or --generate (will create a random secret\n"
+                                       + "for you) or user will be prompt to provide password.";
 
   private String name = null;
 
@@ -575,8 +575,9 @@ public class KnoxCLI extends Configured implements Tool {
          out.println(name + " has been successfully generated.");
        }
        else {
-         throw new IllegalArgumentException("No value has been set. " +
-         		"Consider setting --generate or --value.");
+          value = new String(promptUserForPassword());
+          as.addAliasForCluster(cluster, name, value);
+          out.println(name + " has been successfully created.");
        }
      }
    }
@@ -588,6 +589,31 @@ public class KnoxCLI extends Configured implements Tool {
    public String getUsage() {
      return USAGE + ":\n\n" + DESC;
    }
+
+    protected char[] promptUserForPassword() {
+      char[] password = null;
+      Console c = System.console();
+      if (c == null) {
+        System.err
+            .println("No console to fetch password from user.Consider setting via --generate or --value.");
+        System.exit(1);
+      }
+
+      boolean noMatch;
+      do {
+        char[] newPassword1 = c.readPassword("Enter password: ");
+        char[] newPassword2 = c.readPassword("Enter password again: ");
+        noMatch = !Arrays.equals(newPassword1, newPassword2);
+        if (noMatch) {
+          c.format("Passwords don't match. Try again.%n");
+        } else {
+          password = Arrays.copyOf(newPassword1, newPassword1.length);
+        }
+        Arrays.fill(newPassword1, ' ');
+        Arrays.fill(newPassword2, ' ');
+      } while (noMatch);
+      return password;
+    }
 
  }
 
@@ -623,8 +649,14 @@ public class KnoxCLI extends Configured implements Tool {
         boolean credentialStoreForClusterAvailable =
             keystoreService.isCredentialStoreForClusterAvailable(cluster);
         if (credentialStoreForClusterAvailable) {
-          as.removeAliasForCluster(cluster, name);
-          out.println(name + " has been successfully deleted.");
+          List<String> aliasesForCluster = as.getAliasesForCluster(cluster);
+          if (null == aliasesForCluster || !aliasesForCluster.contains(name)) {
+            out.println("Deletion of Alias: " + name + " from cluster: " + cluster + " Failed. "
+                + "\n" + "No such alias exists in the cluster.");
+          } else {
+            as.removeAliasForCluster(cluster, name);
+            out.println(name + " has been successfully deleted.");
+          }
         } else {
           out.println("Invalid cluster name provided: " + cluster);
         }
@@ -1290,10 +1322,10 @@ public class KnoxCLI extends Configured implements Tool {
     protected String getConfig(Topology t){
       File tmpDir = new File(System.getProperty("java.io.tmpdir"));
       DeploymentFactory.setGatewayServices(services);
-      WebArchive archive = DeploymentFactory.createDeployment(getGatewayConfig(), t);
+      EnterpriseArchive archive = DeploymentFactory.createDeployment(getGatewayConfig(), t);
       File war = archive.as(ExplodedExporter.class).exportExploded(tmpDir, t.getName() + "_deploy.tmp");
       war.deleteOnExit();
-      String config = war.getAbsolutePath() + "/WEB-INF/shiro.ini";
+      String config = war.getAbsolutePath() + "/%2F/WEB-INF/shiro.ini";
       try{
         FileUtils.forceDeleteOnExit(war);
       } catch (IOException e) {

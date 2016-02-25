@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.gateway;
 
+import com.jayway.restassured.RestAssured;
 import com.mycila.xmltool.XMLDoc;
 import com.mycila.xmltool.XMLTag;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
@@ -47,11 +48,19 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.jayway.restassured.RestAssured.given;
+import static com.jayway.restassured.config.ConnectionConfig.connectionConfig;
+import static com.jayway.restassured.config.RestAssuredConfig.newConfig;
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 public class GatewaySampleFuncTest {
+
+  private static final long SHORT_TIMEOUT = 1000L;
+  private static final long MEDIUM_TIMEOUT = 20 * 1000L;
+  private static final long LONG_TIMEOUT = 60 * 1000L;
 
   private static Class RESOURCE_BASE_CLASS = GatewaySampleFuncTest.class;
   private static Logger LOG = LoggerFactory.getLogger( GatewaySampleFuncTest.class );
@@ -66,17 +75,22 @@ public class GatewaySampleFuncTest {
 
   @BeforeClass
   public static void setupSuite() throws Exception {
+    LOG_ENTER();
+    RestAssured.config = newConfig().connectionConfig(connectionConfig().closeIdleConnectionsAfterEachResponse());
     //appenders = NoOpAppender.setUp();
     setupLdap();
     setupGateway();
+    LOG_EXIT();
   }
 
   @AfterClass
   public static void cleanupSuite() throws Exception {
+    LOG_ENTER();
     gateway.stop();
     ldap.stop( true );
     //FileUtils.deleteQuietly( new File( config.getGatewayHomeDir() ) );
     //NoOpAppender.tearDown( appenders );
+    LOG_EXIT();
   }
 
   public static void setupLdap() throws Exception {
@@ -118,6 +132,7 @@ public class GatewaySampleFuncTest {
     } catch ( ServiceLifecycleException e ) {
       e.printStackTrace(); // I18N not required.
     }
+
     gateway = GatewayServer.startGateway( testConfig, srvcs );
     MatcherAssert.assertThat( "Failed to start gateway.", gateway, notNullValue() );
 
@@ -188,15 +203,14 @@ public class GatewaySampleFuncTest {
     return RESOURCE_BASE_CLASS.getName().replaceAll( "\\.", "/" ) + "/";
   }
 
-  @Ignore
-  @Test
+  //@Test
   public void waitForManualTesting() throws IOException {
     System.in.read();
   }
 
-  @Test
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testTestService() throws ClassNotFoundException {
-
+    LOG_ENTER();
     String username = "guest";
     String password = "guest-password";
     String serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
@@ -209,6 +223,7 @@ public class GatewaySampleFuncTest {
         .contentType( "text/plain" )
         .body( is( "test-service-response" ) )
         .when().get( serviceUrl );
+    LOG_EXIT();
   }
 
 }

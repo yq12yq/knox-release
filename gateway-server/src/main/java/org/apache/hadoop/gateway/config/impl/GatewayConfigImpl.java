@@ -22,6 +22,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.gateway.GatewayMessages;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.joda.time.Period;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -67,7 +70,7 @@ import java.util.Map;
 public class GatewayConfigImpl extends Configuration implements GatewayConfig {
 
   private static final String GATEWAY_DEFAULT_TOPOLOGY_NAME_PARAM = "default.app.topology.name";
-  private static final String GATEWAY_DEFAULT_TOPOLOGY_NAME = "sandbox";
+  private static final String GATEWAY_DEFAULT_TOPOLOGY_NAME = null;
 
   private static GatewayMessages log = MessagesFactory.get( GatewayMessages.class );
 
@@ -76,6 +79,8 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   private static final String GATEWAY_CONFIG_FILE_PREFIX = "gateway";
 
   private static final String DEFAULT_STACKS_SERVICES_DIR = "services";
+
+  private static final String DEFAULT_APPLICATIONS_DIR = "applications";
 
   public static final String[] GATEWAY_CONFIG_FILENAMES = {
       GATEWAY_CONFIG_DIR_PREFIX + "/" + GATEWAY_CONFIG_FILE_PREFIX + "-default.xml",
@@ -103,6 +108,7 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   public static final String SECURITY_DIR = GATEWAY_CONFIG_FILE_PREFIX + ".security.dir";
   public static final String DATA_DIR = GATEWAY_CONFIG_FILE_PREFIX + ".data.dir";
   public static final String STACKS_SERVICES_DIR = GATEWAY_CONFIG_FILE_PREFIX + ".services.dir";
+  public static final String APPLICATIONS_DIR = GATEWAY_CONFIG_FILE_PREFIX + ".applications.dir";
   public static final String HADOOP_CONF_DIR = GATEWAY_CONFIG_FILE_PREFIX + ".hadoop.conf.dir";
   public static final String FRONTEND_URL = GATEWAY_CONFIG_FILE_PREFIX + ".frontend.url";
   private static final String TRUST_ALL_CERTS = GATEWAY_CONFIG_FILE_PREFIX + ".trust.all.certs";
@@ -112,6 +118,14 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   private static final String KEYSTORE_TYPE = GATEWAY_CONFIG_FILE_PREFIX + ".keystore.type";
   private static final String XFORWARDED_ENABLED = GATEWAY_CONFIG_FILE_PREFIX + ".xforwarded.enabled";
   private static final String EPHEMERAL_DH_KEY_SIZE = GATEWAY_CONFIG_FILE_PREFIX + ".jdk.tls.ephemeralDHKeySize";
+  private static final String HTTP_CLIENT_MAX_CONNECTION = GATEWAY_CONFIG_FILE_PREFIX + ".httpclient.maxConnections";
+  private static final String THREAD_POOL_MAX = GATEWAY_CONFIG_FILE_PREFIX + ".threadpool.max";
+  public static final String HTTP_SERVER_REQUEST_BUFFER = GATEWAY_CONFIG_FILE_PREFIX + ".httpserver.requestBuffer";
+  public static final String HTTP_SERVER_REQUEST_HEADER_BUFFER = GATEWAY_CONFIG_FILE_PREFIX + ".httpserver.requestHeaderBuffer";
+  public static final String HTTP_SERVER_RESPONSE_BUFFER = GATEWAY_CONFIG_FILE_PREFIX + ".httpserver.responseBuffer";
+  public static final String HTTP_SERVER_RESPONSE_HEADER_BUFFER = GATEWAY_CONFIG_FILE_PREFIX + ".httpserver.responseHeaderBuffer";
+  public static final String DEPLOYMENTS_BACKUP_VERSION_LIMIT =  GATEWAY_CONFIG_FILE_PREFIX + ".deployment.backup.versionLimit";
+  public static final String DEPLOYMENTS_BACKUP_AGE_LIMIT =  GATEWAY_CONFIG_FILE_PREFIX + ".deployment.backup.ageLimit";
 
   // These config property names are not inline with the convention of using the
   // GATEWAY_CONFIG_FILE_PREFIX as is done by those above. These are left for
@@ -181,6 +195,11 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   @Override
   public String getGatewayServicesDir() {
     return get(STACKS_SERVICES_DIR, getGatewayDataDir() + File.separator + DEFAULT_STACKS_SERVICES_DIR);
+  }
+
+  @Override
+  public String getGatewayApplicationsDir() {
+    return get(APPLICATIONS_DIR, getGatewayDataDir() + File.separator + DEFAULT_APPLICATIONS_DIR);
   }
 
   @Override
@@ -365,7 +384,12 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
    */
   @Override
   public String getDefaultAppRedirectPath() {
-    return "/" + getGatewayPath() + "/" + getDefaultTopologyName();
+    String defTopo = getDefaultTopologyName();
+    if( defTopo == null ) {
+      return null;
+    } else {
+      return "/" + getGatewayPath() + "/" + defTopo;
+    }
   }
 
   /* (non-Javadoc)
@@ -445,4 +469,76 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   public String getEphemeralDHKeySize() {
     return get( EPHEMERAL_DH_KEY_SIZE, "2048");
   }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getHttpClientMaxConnections()
+   */
+  @Override
+  public int getHttpClientMaxConnections() {
+    return getInt( HTTP_CLIENT_MAX_CONNECTION, 32 );
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getThreadPoolMax()
+   */
+  @Override
+  public int getThreadPoolMax() {
+    int i = getInt( THREAD_POOL_MAX, 254 );
+    // Testing has shown that a value lower than 5 prevents Jetty from servicing request.
+    if( i < 5 ) {
+      i = 5;
+    }
+    return i;
+  }
+
+  @Override
+  public int getHttpServerRequestBuffer() {
+    int i = getInt( HTTP_SERVER_REQUEST_BUFFER, 16 * 1024 );
+    return i;
+  }
+
+  @Override
+  public int getHttpServerRequestHeaderBuffer() {
+    int i = getInt( HTTP_SERVER_REQUEST_HEADER_BUFFER, 8 * 1024 );
+    return i;
+  }
+
+  @Override
+  public int getHttpServerResponseBuffer() {
+    int i = getInt( HTTP_SERVER_RESPONSE_BUFFER, 32 * 1024 );
+    return i;
+  }
+
+  @Override
+  public int getHttpServerResponseHeaderBuffer() {
+    int i = getInt( HTTP_SERVER_RESPONSE_HEADER_BUFFER, 8 * 1024 );
+    return i;
+  }
+
+  @Override
+  public int getGatewayDeploymentsBackupVersionLimit() {
+    int i = getInt( DEPLOYMENTS_BACKUP_VERSION_LIMIT, 5 );
+    if( i < 0 ) {
+      i = -1;
+    }
+    return i;
+  }
+
+  @Override
+  public long getGatewayDeploymentsBackupAgeLimit() {
+    PeriodFormatter f = new PeriodFormatterBuilder().appendDays().toFormatter();
+    String s = get( DEPLOYMENTS_BACKUP_AGE_LIMIT, "-1" );
+    long d;
+    try {
+      Period p = Period.parse( s, f );
+      d = p.toStandardDuration().getMillis();
+      if( d < 0 ) {
+        d = -1;
+      }
+    } catch( Exception e ) {
+      d = -1;
+    }
+    return d;
+  }
+
 }

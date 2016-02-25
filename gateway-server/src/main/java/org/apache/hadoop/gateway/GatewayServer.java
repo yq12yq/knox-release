@@ -30,21 +30,28 @@ import org.apache.hadoop.gateway.audit.log4j.audit.AuditConstants;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.config.impl.GatewayConfigImpl;
 import org.apache.hadoop.gateway.deploy.DeploymentFactory;
+import org.apache.hadoop.gateway.filter.CorrelationHandler;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.apache.hadoop.gateway.i18n.resources.ResourcesFactory;
 import org.apache.hadoop.gateway.services.GatewayServices;
-import org.apache.hadoop.gateway.services.ServiceLifecycleException;
-import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.services.registry.ServiceRegistry;
 import org.apache.hadoop.gateway.services.security.SSLService;
+import org.apache.hadoop.gateway.services.topology.TopologyService;
 import org.apache.hadoop.gateway.topology.Topology;
 import org.apache.hadoop.gateway.topology.TopologyEvent;
 import org.apache.hadoop.gateway.topology.TopologyListener;
+import org.apache.hadoop.gateway.trace.AccessHandler;
+import org.apache.hadoop.gateway.trace.ErrorHandler;
+import org.apache.hadoop.gateway.trace.TraceHandler;
 import org.apache.log4j.PropertyConfigurator;
 import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.ErrorHandler;
+import org.eclipse.jetty.server.handler.HandlerCollection;
+import org.eclipse.jetty.server.handler.RequestLogHandler;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.jboss.shrinkwrap.api.exporter.ExplodedExporter;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
@@ -90,6 +97,7 @@ public class GatewayServer {
   public static void main( String[] args ) {
     try {
       configureLogging();
+      logSysProps();
       CommandLine cmd = GatewayCommandLine.parse( args );
       if( cmd.hasOption( GatewayCommandLine.HELP_LONG ) ) {
         GatewayCommandLine.printHelp();
@@ -157,6 +165,18 @@ public class GatewayServer {
 
   public static synchronized GatewayServices getGatewayServices() {
     return services;
+  }
+
+  private static void logSysProp( String name ) {
+    log.logSysProp( name, System.getProperty( name ) );
+  }
+
+  private static void logSysProps() {
+    logSysProp( "user.name" );
+    logSysProp( "user.dir" );
+    logSysProp( "java.runtime.name" );
+    logSysProp( "java.runtime.version" );
+    logSysProp( "java.home" );
   }
 
   private static void configureLogging() {
@@ -243,29 +263,45 @@ public class GatewayServer {
       this.listener = new InternalTopologyListener();
   }
 
-//  private void setupSslExample() throws Exception {
-//    SslContextFactory sslContextFactory = new SslContextFactory( true );
-//    sslContextFactory.setCertAlias( "server" );
-//    sslContextFactory.setKeyStorePath( "target/test-classes/server-keystore.jks" );
-//    sslContextFactory.setKeyStorePassword( "password" );
-//    //sslContextFactory.setKeyManagerPassword( "password" );
-//    sslContextFactory.setTrustStore( "target/test-classes/server-truststore.jks" );
-//    sslContextFactory.setTrustStorePassword( "password" );
-//    sslContextFactory.setNeedClientAuth( false );
-//    sslContextFactory.setTrustAll( true );
-//    SslConnector sslConnector = new SslSelectChannelConnector( sslContextFactory );
-//
-//    ServletContextHandler context = new ServletContextHandler( ServletContextHandler.SESSIONS );
-//    context.setContextPath( "/" );
-//    ServletHolder servletHolder = new ServletHolder( new MockServlet() );
-//    context.addServlet( servletHolder, "/*" );
-//
-//    jetty = new Server();
-//    jetty.addConnector( sslConnector );
-//    jetty.setHandler( context );
-//    jetty.start();
-//  }
+  private static Connector createConnector( final GatewayConfig config ) throws IOException {
+    Connector connector;
 
+    // Determine the socket address and check availability.
+    InetSocketAddress address = config.getGatewayAddress();
+    checkAddressAvailability( address );
+
+    if (config.isSSLEnabled()) {
+      SSLService ssl = services.getService("SSLService");
+      String keystoreFileName = config.getGatewaySecurityDir() + File.separatorChar + "keystores" + File.separatorChar + "gateway.jks";
+      connector = (Connector) ssl.buildSSlConnector(keystoreFileName);
+    } else {
+      connector = new SelectChannelConnector();
+    }
+    connector.setHost( address.getHostName() );
+    connector.setPort( address.getPort() );
+    connector.setRequestHeaderSize( config.getHttpServerRequestHeaderBuffer() );
+    connector.setRequestBufferSize( config.getHttpServerRequestBuffer() );
+    connector.setResponseHeaderSize( config.getHttpServerResponseHeaderBuffer() );
+    connector.setResponseBufferSize( config.getHttpServerResponseBuffer() );
+
+    return connector;
+  }
+
+  private static HandlerCollection createHandlers( final GatewayConfig config, final ContextHandlerCollection contexts ) {
+    HandlerCollection handlers = new HandlerCollection();
+    RequestLogHandler logHandler = new RequestLogHandler();
+    logHandler.setRequestLog( new AccessHandler() );
+
+    TraceHandler traceHandler = new TraceHandler();
+    traceHandler.setHandler( contexts );
+    traceHandler.setTracedBodyFilter( System.getProperty( "org.apache.knox.gateway.trace.body.status.filter" ) );
+
+    CorrelationHandler correlationHandler = new CorrelationHandler();
+    correlationHandler.setHandler( traceHandler );
+
+    handlers.setHandlers( new Handler[]{ correlationHandler, logHandler } );
+    return handlers;
+  }
 
   private synchronized void start() throws Exception {
 
@@ -274,28 +310,14 @@ public class GatewayServer {
      // A map to keep track of current deployments by cluster name.
     deployments = new ConcurrentHashMap<String, WebAppContext>();
 
-    // Determine the socket address and check availability.
-    InetSocketAddress address = config.getGatewayAddress();
-    checkAddressAvailability( address );
-
     // Start Jetty.
-    if (config.isSSLEnabled()) {
-      jetty = new Server();
-    }
-    else {
-      jetty = new Server(address);
-    }
-    if (config.isSSLEnabled()) {
-      SSLService ssl = services.getService("SSLService");
-      String keystoreFileName = config.getGatewaySecurityDir() + File.separatorChar + "keystores" + File.separatorChar + "gateway.jks";
-      Connector connector = (Connector) ssl.buildSSlConnector(keystoreFileName);
-      connector.setHost(address.getHostName());
-      connector.setPort(address.getPort());
-      jetty.addConnector(connector);
-    }
-    jetty.setHandler( contexts );
+    jetty = new Server();
+    jetty.addConnector( createConnector( config ) );
+    jetty.setHandler( createHandlers( config, contexts ) );
+    jetty.setThreadPool( new QueuedThreadPool( config.getThreadPoolMax() ) );
+
     try {
-    jetty.start();
+      jetty.start();
     }
     catch (IOException e) {
       log.failedToStartGateway( e );
@@ -344,6 +366,7 @@ public class GatewayServer {
     String warPath = warFile.getAbsolutePath();
     errorHandler = new ErrorHandler();
     errorHandler.setShowStacks(false);
+    errorHandler.setTracedBodyFilter( System.getProperty( "org.apache.knox.gateway.trace.body.status.filter" ) );
     WebAppContext context = new WebAppContext();
     context.setDefaultsDescriptor( null );
     if (!name.equals("_default")) {
@@ -439,21 +462,26 @@ public class GatewayServer {
           File tmp = war.as( ExplodedExporter.class ).exportExploded( deployDir, warDir.getName() + ".tmp" );
           tmp.renameTo( warDir );
           internalDeploy( topology, warDir );
-          //log.deployedTopology( topology.getName());
-          if (topology.getName().equals(config.getDefaultTopologyName())) {
-            topology.setName("_default");
-            handleCreateDeployment(topology, deployDir);
-            topology.setName(config.getDefaultTopologyName());
-          }
+          handleDefaultTopology(topology, deployDir);
+          log.deployedTopology( topology.getName());
         } else {
           auditor.audit( Action.REDEPLOY, topology.getName(), ResourceType.TOPOLOGY, ActionOutcome.UNAVAILABLE );
           log.redeployingTopology( topology.getName(), warDir.getAbsolutePath() );
           internalDeploy( topology, warDir );
-          //log.redeployedTopology( topology.getName() );
+          handleDefaultTopology(topology, deployDir);
+          log.redeployedTopology( topology.getName() );
         }
       } catch( Throwable e ) {
         auditor.audit( Action.DEPLOY, topology.getName(), ResourceType.TOPOLOGY, ActionOutcome.FAILURE );
         log.failedToDeployTopology( topology.getName(), e );
+      }
+    }
+
+    public void handleDefaultTopology(Topology topology, File deployDir) {
+      if (topology.getName().equals(config.getDefaultTopologyName())) {
+        topology.setName("_default");
+        handleCreateDeployment(topology, deployDir);
+        topology.setName(config.getDefaultTopologyName());
       }
     }
 

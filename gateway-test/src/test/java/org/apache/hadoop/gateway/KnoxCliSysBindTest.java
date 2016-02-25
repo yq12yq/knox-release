@@ -24,6 +24,7 @@ import org.apache.hadoop.gateway.security.ldap.SimpleLdapDirectoryServer;
 import org.apache.hadoop.gateway.services.DefaultGatewayServices;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
 import org.apache.hadoop.gateway.util.KnoxCLI;
+import org.apache.hadoop.test.log.NoOpAppender;
 import org.apache.log4j.Appender;
 import org.hamcrest.Matchers;
 import org.junit.AfterClass;
@@ -45,12 +46,15 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
-;
-
 public class KnoxCliSysBindTest {
+
+  private static final long SHORT_TIMEOUT = 1000L;
+  private static final long MEDIUM_TIMEOUT = 5 * SHORT_TIMEOUT;
 
   private static Class RESOURCE_BASE_CLASS = KnoxCliSysBindTest.class;
   private static Logger LOG = LoggerFactory.getLogger( KnoxCliSysBindTest.class );
@@ -69,18 +73,22 @@ public class KnoxCliSysBindTest {
 
   @BeforeClass
   public static void setupSuite() throws Exception {
+    LOG_ENTER();
     System.setOut(new PrintStream(outContent));
     System.setErr(new PrintStream(errContent));
     setupLdap();
     setupGateway();
+    LOG_EXIT();
   }
 
   @AfterClass
   public static void cleanupSuite() throws Exception {
+    LOG_ENTER();
     ldap.stop( true );
 
     //FileUtils.deleteQuietly( new File( config.getGatewayHomeDir() ) );
     //NoOpAppender.tearDown( appenders );
+    LOG_EXIT();
   }
 
   public static void setupLdap( ) throws Exception {
@@ -269,8 +277,9 @@ public class KnoxCliSysBindTest {
     return xml;
   }
 
-  @Test
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testLDAPAuth() throws Exception {
+    LOG_ENTER();
 
 //    Test 1: Make sure authentication is successful
     outContent.reset();
@@ -294,7 +303,12 @@ public class KnoxCliSysBindTest {
     String args3[] = { "system-user-auth-test", "--master", "knox", "--cluster", "test-cluster-3", "--d" };
     cli = new KnoxCLI();
     cli.setConf(config);
-    cli.run(args3);
+    Enumeration<Appender> before = NoOpAppender.setUp();
+    try {
+      cli.run( args3 );
+    } finally {
+      NoOpAppender.tearDown( before );
+    }
     assertThat(outContent.toString(), containsString("LDAP authentication failed"));
     assertThat(outContent.toString(), containsString("Unable to successfully bind to LDAP server with topology credentials"));
 
@@ -316,7 +330,7 @@ public class KnoxCliSysBindTest {
     cli.run(args5);
     assertThat(outContent.toString(), containsString("Topology not-a-cluster does not exist"));
 
-
+    LOG_EXIT();
   }
 
 

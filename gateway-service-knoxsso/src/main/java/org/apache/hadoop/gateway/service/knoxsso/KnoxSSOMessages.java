@@ -20,6 +20,7 @@ package org.apache.hadoop.gateway.service.knoxsso;
 import org.apache.hadoop.gateway.i18n.messages.Message;
 import org.apache.hadoop.gateway.i18n.messages.MessageLevel;
 import org.apache.hadoop.gateway.i18n.messages.Messages;
+import org.apache.hadoop.gateway.i18n.messages.StackTrace;
 
 @Messages(logger="org.apache.hadoop.gateway.service.knoxsso")
 public interface KnoxSSOMessages {
@@ -43,4 +44,23 @@ public interface KnoxSSOMessages {
 
   @Message( level = MessageLevel.INFO, text = "JWT cookie successfully added.")
   void addedJWTCookie();
+
+  @Message( level = MessageLevel.ERROR, text = "Unable to issue token.")
+  void unableToIssueToken(@StackTrace( level = MessageLevel.DEBUG) Exception e);
+
+  @Message( level = MessageLevel.WARN, text = "The SSO cookie SecureOnly flag is set to FALSE and is therefore insecure.")
+  void cookieSecureOnly(boolean secureOnly);
+
+  @Message( level = MessageLevel.WARN, text = "The SSO cookie max age configuration is invalid: {0} - using default.")
+  void invalidMaxAgeEncountered(String age);
+
+  @Message( level = MessageLevel.WARN, text = "The SSO token time to live - ttl is invalid: {0} - using default.")
+  void invalidTokenTTLEncountered(String ttl);
+
+  @Message( level = MessageLevel.INFO, text = "The cookie max age is being set to: {0}.")
+  void setMaxAge(String age);
+
+  @Message( level = MessageLevel.ERROR, text = "The original URL: {0} for redirecting back after authentication is " +
+  		"not valid according to the configured whitelist: {1}. See documentation for KnoxSSO Whitelisting.")
+  void whiteListMatchFail(String original, String whitelist);
 }

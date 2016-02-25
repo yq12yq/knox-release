@@ -20,7 +20,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.6.0</version>
+        <version>0.9.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-provider-security-jwt</artifactId>
 
@@ -46,10 +46,12 @@
             <artifactId>gateway-util-common</artifactId>
         </dependency>
 
+        <!--
         <dependency>
             <groupId>org.eclipse.jetty.orbit</groupId>
             <artifactId>javax.servlet</artifactId>
         </dependency>
+        -->
 
         <dependency>
             <groupId>commons-io</groupId>

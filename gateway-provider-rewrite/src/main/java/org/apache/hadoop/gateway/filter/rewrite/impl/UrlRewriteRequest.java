@@ -50,6 +50,7 @@ import static org.apache.hadoop.gateway.filter.rewrite.impl.UrlRewriteUtil.pickF
 public class UrlRewriteRequest extends GatewayRequestWrapper implements Resolver {
 
   private static final UrlRewriteMessages LOG = MessagesFactory.get( UrlRewriteMessages.class );
+  private static final String[] EMPTY_STRING_ARRAY = new String[]{};
 
   private UrlRewriter rewriter;
   private String urlRuleName;
@@ -93,7 +94,7 @@ public class UrlRewriteRequest extends GatewayRequestWrapper implements Resolver
       urlString.append( queryString );
     }
     try {
-      urlTemplate = Parser.parse( urlString.toString() );
+      urlTemplate = Parser.parseLiteral( urlString.toString() );
     } catch( URISyntaxException e ) {
       LOG.failedToParseValueForUrlRewrite( urlString.toString() );
       // Shouldn't be possible given that the URL is constructed from parts of an existing URL.
@@ -120,8 +121,12 @@ public class UrlRewriteRequest extends GatewayRequestWrapper implements Resolver
   }
 
   private String[] splitTargetUrl( Template url ) {
-    String s = url.toString();
-    return s.split( "\\?" );
+    if( url == null ) {
+      return EMPTY_STRING_ARRAY;
+    } else {
+      String s = url.toString();
+      return s.split( "\\?" );
+    }
   }
 
   @Override
@@ -153,7 +158,7 @@ public class UrlRewriteRequest extends GatewayRequestWrapper implements Resolver
 
   private String rewriteValue( UrlRewriter rewriter, String value, String rule ) {
     try {
-      Template input = Parser.parse( value );
+      Template input = Parser.parseLiteral( value );
       Template output = rewriter.rewrite( this, input, UrlRewriter.Direction.IN, rule );
       value = output.getPattern();
     } catch( URISyntaxException e ) {

@@ -26,6 +26,7 @@ import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.security.ldap.SimpleLdapDirectoryServer;
 import org.apache.hadoop.gateway.services.DefaultGatewayServices;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
+import org.apache.hadoop.test.category.ReleaseTest;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Appender;
 import org.hamcrest.MatcherAssert;
@@ -35,6 +36,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,13 +54,19 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 
+@Category(ReleaseTest.class)
 public class GatewayDeployFuncTest {
+
+  private static final long SHORT_TIMEOUT = 1000L;
+  private static final long LONG_TIMEOUT = 30 * 1000L;
 
   private static Class RESOURCE_BASE_CLASS = GatewayDeployFuncTest.class;
   private static Logger LOG = LoggerFactory.getLogger( GatewayDeployFuncTest.class );
@@ -74,15 +82,19 @@ public class GatewayDeployFuncTest {
 
   @BeforeClass
   public static void setupSuite() throws Exception {
+    LOG_ENTER();
     //appenders = NoOpAppender.setUp();
     setupLdap();
+    LOG_EXIT();
   }
 
   @AfterClass
   public static void cleanupSuite() throws Exception {
+    LOG_ENTER();
     ldap.stop( true );
     //FileUtils.deleteQuietly( new File( config.getGatewayHomeDir() ) );
     //NoOpAppender.tearDown( appenders );
+    LOG_EXIT();
   }
 
   public static void setupLdap() throws Exception {
@@ -202,8 +214,9 @@ public class GatewayDeployFuncTest {
     System.in.read();
   }
 
-  @Test( timeout = 30*1000 )
+  @Test( timeout = LONG_TIMEOUT )
   public void testDeployRedeployUndeploy() throws InterruptedException, IOException {
+    LOG_ENTER();
     long sleep = 200;
     int numFilesInWar = 5;
     String username = "guest";
@@ -281,6 +294,7 @@ public class GatewayDeployFuncTest {
     // Make sure deployment directory is empty.
     assertThat( topoDir.listFiles().length, is( 0 ) );
     assertThat( deployDir.listFiles().length, is( 0 ) );
+    LOG_EXIT();
   }
 
   private void waitForElapsed( long from, long total, long sleep ) throws InterruptedException {

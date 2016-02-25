@@ -40,16 +40,17 @@ public class HtmlUrlRewriteFilterReader extends HtmlFilterReader {
 
   public HtmlUrlRewriteFilterReader( Reader reader, UrlRewriter rewriter, Resolver resolver, UrlRewriter.Direction direction, UrlRewriteFilterContentDescriptor config )
       throws IOException, ParserConfigurationException {
-    super( reader );
+    super( reader, config );
     this.resolver = resolver;
     this.rewriter = rewriter;
     this.direction = direction;
   }
 
   //TODO: Need to limit which values are attempted to be filtered by the name.
-  protected String filterValueString( String name, String value, String rule ) {
+  @Override
+  public String filterValueString( String name, String value, String rule ) {
     try {
-      Template input = Parser.parse( value );
+      Template input = Parser.parseLiteral( value );
       Template output = rewriter.rewrite( resolver, input, direction, rule );
       if( output != null ) {
         value = output.getPattern();

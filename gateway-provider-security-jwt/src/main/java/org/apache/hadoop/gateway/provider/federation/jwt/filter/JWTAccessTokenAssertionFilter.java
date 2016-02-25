@@ -20,6 +20,7 @@ package org.apache.hadoop.gateway.provider.federation.jwt.filter;
 import java.io.IOException;
 import java.security.AccessController;
 import java.security.Principal;
+import java.text.ParseException;
 import java.util.HashMap;
 
 import javax.security.auth.Subject;
@@ -32,9 +33,12 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.hadoop.gateway.filter.security.AbstractIdentityAssertionFilter;
+import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.apache.hadoop.gateway.provider.federation.jwt.JWTMessages;
 import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.registry.ServiceRegistry;
 import org.apache.hadoop.gateway.services.security.token.JWTokenAuthority;
+import org.apache.hadoop.gateway.services.security.token.TokenServiceException;
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
 import org.apache.hadoop.gateway.util.JsonUtils;
 
@@ -44,6 +48,7 @@ public class JWTAccessTokenAssertionFilter extends AbstractIdentityAssertionFilt
   private static final String TOKEN_TYPE = "token_type";
   private static final String ACCESS_TOKEN = "access_token";
   private static final String BEARER = "Bearer ";
+  private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
   private long validity;
   private JWTokenAuthority authority = null;
   private ServiceRegistry sr;
@@ -71,10 +76,20 @@ public class JWTAccessTokenAssertionFilter extends AbstractIdentityAssertionFilt
     if (header != null && header.startsWith(BEARER)) {
       // what follows the bearer designator should be the JWT token being used to request or as an access token
       String wireToken = header.substring(BEARER.length());
-      JWTToken token = JWTToken.parseToken(wireToken);
+      JWTToken token;
+      try {
+        token = JWTToken.parseToken(wireToken);
+      } catch (ParseException e) {
+        throw new ServletException("ParseException encountered while processing the JWT token: ", e);
+      }
       // ensure that there is a valid jwt token available and that there isn't a misconfiguration of filters
       if (token != null) {
-        authority.verifyToken(token);
+        try {
+          authority.verifyToken(token);
+        }
+        catch (TokenServiceException e) {
+          log.unableToVerifyToken(e);
+        }
       }
       else {
         throw new ServletException("Expected JWT Token not provided as Bearer token");
@@ -132,7 +147,12 @@ public class JWTAccessTokenAssertionFilter extends AbstractIdentityAssertionFilt
         return principalName;
       }
     };
-    JWTToken token = authority.issueToken(p, serviceName, "RS256", expires);
+    JWTToken token = null;
+    try {
+      token = authority.issueToken(p, serviceName, "RS256", expires);
+    } catch (TokenServiceException e) {
+      log.unableToIssueToken(e);
+    }
     accessToken = token.toString();
     
     return accessToken;

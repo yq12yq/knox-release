@@ -18,6 +18,8 @@
 package org.apache.hadoop.gateway;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.apache.hadoop.test.TestUtils.LOG_ENTER;
+import static org.apache.hadoop.test.TestUtils.LOG_EXIT;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -28,6 +30,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.URL;
 import java.util.Enumeration;
@@ -44,6 +47,7 @@ import org.apache.hadoop.gateway.services.GatewayServices;
 import org.apache.hadoop.gateway.services.ServiceLifecycleException;
 import org.apache.hadoop.gateway.services.security.AliasService;
 import org.apache.hadoop.gateway.util.KnoxCLI;
+import org.apache.hadoop.test.TestUtils;
 import org.apache.http.HttpStatus;
 import org.apache.log4j.Appender;
 import org.hamcrest.MatcherAssert;
@@ -66,6 +70,9 @@ import com.mycila.xmltool.XMLTag;
  */
 public class Knox242FuncTest {
 
+  private static final long SHORT_TIMEOUT = 1000L;
+  private static final long MEDIUM_TIMEOUT = 10 * SHORT_TIMEOUT;
+
   private static Class RESOURCE_BASE_CLASS = Knox242FuncTest.class;
   private static Logger LOG = LoggerFactory.getLogger( Knox242FuncTest.class );
 
@@ -74,22 +81,29 @@ public class Knox242FuncTest {
   public static GatewayServer gateway;
   public static String gatewayUrl;
   public static String clusterUrl;
+  public static String serviceUrl;
   public static SimpleLdapDirectoryServer ldap;
   public static TcpTransport ldapTransport;
 
   @BeforeClass
   public static void setupSuite() throws Exception {
+    LOG_ENTER();
     //appenders = NoOpAppender.setUp();
     int port = setupLdap();
     setupGateway(port);
+    TestUtils.awaitPortOpen( new InetSocketAddress( "localhost", port ), 10000, 100 );
+    TestUtils.awaitNon404HttpStatus( new URL( serviceUrl ), 10000, 100 );
+    LOG_EXIT();
   }
 
   @AfterClass
   public static void cleanupSuite() throws Exception {
+    LOG_ENTER();
     gateway.stop();
     ldap.stop( true );
     //FileUtils.deleteQuietly( new File( config.getGatewayHomeDir() ) );
     //NoOpAppender.tearDown( appenders );
+    LOG_EXIT();
   }
 
   public static int setupLdap() throws Exception {
@@ -103,7 +117,7 @@ public class Knox242FuncTest {
   }
 
   public static void setupGateway(int ldapPort) throws IOException, Exception {
-    
+
     File targetDir = new File( System.getProperty( "user.dir" ), "target" );
     File gatewayDir = new File( targetDir, "gateway-home-" + UUID.randomUUID() );
     gatewayDir.mkdirs();
@@ -118,11 +132,6 @@ public class Knox242FuncTest {
     File deployDir = new File( testConfig.getGatewayDeploymentDir() );
     deployDir.mkdirs();
 
-    File descriptor = new File( topoDir, "testdg-cluster.xml" );
-    FileOutputStream stream = new FileOutputStream( descriptor );
-    createTopology(ldapPort).toStream( stream );
-    stream.close();
-    
     DefaultGatewayServices srvcs = new DefaultGatewayServices();
     Map<String,String> options = new HashMap<String,String>();
     options.put( "persist-master", "false" );
@@ -132,7 +141,7 @@ public class Knox242FuncTest {
     } catch ( ServiceLifecycleException e ) {
       e.printStackTrace(); // I18N not required.
     }
-    
+
     gateway = GatewayServer.startGateway( testConfig, srvcs );
     MatcherAssert.assertThat( "Failed to start gateway.", gateway, notNullValue() );
 
@@ -140,31 +149,26 @@ public class Knox242FuncTest {
 
     gatewayUrl = "http://localhost:" + gateway.getAddresses()[0].getPort() + "/" + config.getGatewayPath();
     clusterUrl = gatewayUrl + "/testdg-cluster";
-    
+    serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
+
     GatewayServices services = GatewayServer.getGatewayServices();
     AliasService aliasService = (AliasService)services.getService(GatewayServices.ALIAS_SERVICE);
     aliasService.addAliasForCluster("testdg-cluster", "ldcSystemPassword", "guest-password");
-  
+
     char[] password1 = aliasService.getPasswordFromAliasForCluster( "testdg-cluster", "ldcSystemPassword");
     //System.err.println("SETUP password 10: " + ((password1 == null) ? "NULL" : new String(password1)));
-    
-    descriptor = new File( topoDir, "testdg-cluster.xml" );
-    stream = new FileOutputStream( descriptor );
+
+    File descriptor = new File( topoDir, "testdg-cluster.xml" );
+    FileOutputStream stream = new FileOutputStream( descriptor );
     createTopology(ldapPort).toStream( stream );
     stream.close();
-    
-    try {
-      Thread.sleep(5000);
-    } catch (Exception e) {
-      
-    }
   }
 
   private static XMLTag createTopology(int ldapPort) {
     XMLTag xml = XMLDoc.newDocument( true )
         .addRoot( "topology" )
         .addTag( "gateway" )
-        
+
         .addTag( "provider" )
         .addTag( "role" ).addText( "authentication" )
         .addTag( "name" ).addText( "ShiroProvider" )
@@ -233,7 +237,7 @@ public class Knox242FuncTest {
         .gotoParent().addTag( "param" )
         .addTag( "name" ).addText( "urls./**" )
         .addTag( "value" ).addText( "authcBasic" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "authorization" )
         .addTag( "name" ).addText( "AclsAuthz" )
@@ -241,12 +245,12 @@ public class Knox242FuncTest {
         .addTag( "param" )
         .addTag( "name" ).addText( "test-service-role.acl" )
         .addTag( "value" ).addText( "*;directors;*" )
-        
+
         .gotoParent().gotoParent().addTag( "provider" )
         .addTag( "role" ).addText( "identity-assertion" )
         .addTag( "enabled" ).addText( "true" )
         .addTag( "name" ).addText( "Default" ).gotoParent()
-        
+
         .gotoRoot()
         .addTag( "service" )
         .addTag( "role" ).addText( "test-service-role" )
@@ -286,8 +290,9 @@ public class Knox242FuncTest {
     System.in.read();
   }
 
-  @Test
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testGroupMember() throws ClassNotFoundException, Exception {
+    LOG_ENTER();
     String username = "joe";
     String password = "joe-password";
     String serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
@@ -300,10 +305,12 @@ public class Knox242FuncTest {
         .contentType( "text/plain" )
         .body( is( "test-service-response" ) )
         .when().get( serviceUrl );
+    LOG_EXIT();
   }
-  
-  @Test
+
+  @Test( timeout = MEDIUM_TIMEOUT )
   public void testNonGroupMember() throws ClassNotFoundException {
+    LOG_ENTER();
     String username = "guest";
     String password = "guest-password";
     String serviceUrl =  clusterUrl + "/test-service-path/test-service-resource";
@@ -314,6 +321,7 @@ public class Knox242FuncTest {
         //.log().all()
         .statusCode( HttpStatus.SC_FORBIDDEN )
         .when().get( serviceUrl );
+    LOG_EXIT();
   }
   
 }

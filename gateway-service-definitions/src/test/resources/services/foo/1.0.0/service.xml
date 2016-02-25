@@ -35,5 +35,9 @@
             <dispatch contributor-name="http-client" />
         </route>
     </routes>
-    <dispatch contributor-name="custom-client" ha-contributor-name="ha-client"/>
+    <dispatch contributor-name="custom-client" ha-contributor-name="ha-client" http-client-factory="org.apache.hadoop.gateway.MockHttpClientFactory"/>
+    <testURLs>
+        <testURL>/foo/version</testURL>
+        <testURL>/foo/bar/status</testURL>
+    </testURLs>
 </service>

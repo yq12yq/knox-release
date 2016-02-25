@@ -33,8 +33,6 @@ import org.apache.hadoop.gateway.i18n.resources.ResourcesFactory;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpOptions;
@@ -42,9 +40,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ContentType;
-import org.apache.http.entity.InputStreamEntity;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -61,29 +56,21 @@ import java.util.Set;
  */
 public class DefaultDispatch extends AbstractGatewayDispatch {
 
-  // private static final String CT_APP_WWW_FORM_URL_ENCODED = "application/x-www-form-urlencoded";
-  // private static final String CT_APP_XML = "application/xml";
-  protected static final String Q_DELEGATION_EQ = "?delegation=";
-  protected static final String AMP_DELEGATION_EQ = "&delegation=";
-  protected static final String COOKIE = "Cookie";
-  protected static final String SET_COOKIE = "Set-Cookie";
-  protected static final String WWW_AUTHENTICATE = "WWW-Authenticate";
-  protected static final String NEGOTIATE = "Negotiate";
+  protected static final String SET_COOKIE = "SET-COOKIE";
+  protected static final String WWW_AUTHENTICATE = "WWW-AUTHENTICATE";
 
   protected static SpiGatewayMessages LOG = MessagesFactory.get(SpiGatewayMessages.class);
   protected static SpiGatewayResources RES = ResourcesFactory.get(SpiGatewayResources.class);
   protected static Auditor auditor = AuditServiceFactory.getAuditService().getAuditor(AuditConstants.DEFAULT_AUDITOR_NAME,
       AuditConstants.KNOX_SERVICE_NAME, AuditConstants.KNOX_COMPONENT_NAME);
 
-  protected AppCookieManager appCookieManager;
-
-  private int replayBufferSize = 0;
   private Set<String> outboundResponseExcludeHeaders;
+
+  private int replayBufferSize = -1;
 
   @Override
   public void init() {
-    setAppCookieManager(new AppCookieManager());
-    outboundResponseExcludeHeaders = new HashSet<String>();
+    outboundResponseExcludeHeaders = new HashSet<>();
     outboundResponseExcludeHeaders.add(SET_COOKIE);
     outboundResponseExcludeHeaders.add(WWW_AUTHENTICATE);
   }
@@ -93,8 +80,13 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
 
   }
 
-  public void setAppCookieManager(AppCookieManager appCookieManager) {
-    this.appCookieManager = appCookieManager;
+  protected int getReplayBufferSize() {
+    return replayBufferSize;
+  }
+
+  @Configure
+  protected void setReplayBufferSize(@Default("-1")int size) {
+    replayBufferSize = size;
   }
 
   protected void executeRequest(
@@ -106,50 +98,38 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
       writeOutboundResponse(outboundRequest, inboundRequest, outboundResponse, inboundResponse);
    }
 
-   protected HttpResponse executeOutboundRequest(HttpUriRequest outboundRequest) throws IOException {
-      LOG.dispatchRequest(outboundRequest.getMethod(), outboundRequest.getURI());
-      HttpResponse inboundResponse = null;
+  protected HttpResponse executeOutboundRequest( HttpUriRequest outboundRequest ) throws IOException {
+    LOG.dispatchRequest( outboundRequest.getMethod(), outboundRequest.getURI() );
+    HttpResponse inboundResponse;
 
-      try {
-         String query = outboundRequest.getURI().getQuery();
-         if (!"true".equals(System.getProperty(GatewayConfig.HADOOP_KERBEROS_SECURED))) {
-            // Hadoop cluster not Kerberos enabled
-            addCredentialsToRequest(outboundRequest);
-            inboundResponse = client.execute(outboundRequest);
-         } else if (query.contains(Q_DELEGATION_EQ) ||
-               // query string carries delegation token
-               query.contains(AMP_DELEGATION_EQ)) {
-            inboundResponse = client.execute(outboundRequest);
-         } else {
-            // Kerberos secured, no delegation token in query string
-            inboundResponse = executeKerberosDispatch(outboundRequest, client);
-         }
-      } catch (IOException e) {
-         // we do not want to expose back end host. port end points to clients, see JIRA KNOX-58
-         LOG.dispatchServiceConnectionException(outboundRequest.getURI(), e);
-         auditor.audit(Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.FAILURE);
-         throw new IOException(RES.dispatchConnectionError());
-      } finally {
-         if (inboundResponse != null) {
-            int statusCode = inboundResponse.getStatusLine().getStatusCode();
-            if (statusCode != 201) {
-               LOG.dispatchResponseStatusCode(statusCode);
-            } else {
-               Header location = inboundResponse.getFirstHeader("Location");
-               if (location == null) {
-                  LOG.dispatchResponseStatusCode(statusCode);
-               } else {
-                  LOG.dispatchResponseCreatedStatusCode(statusCode, location.getValue());
-               }
-            }
-            auditor.audit(Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.SUCCESS, RES.responseStatus(statusCode));
-         } else {
-            auditor.audit(Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.UNAVAILABLE);
-         }
-
+    try {
+      auditor.audit( Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.UNAVAILABLE, RES.requestMethod( outboundRequest.getMethod() ) );
+      if( !"true".equals( System.getProperty( GatewayConfig.HADOOP_KERBEROS_SECURED ) ) ) {
+        // Hadoop cluster not Kerberos enabled
+        addCredentialsToRequest( outboundRequest );
       }
-      return inboundResponse;
-   }
+      inboundResponse = client.execute( outboundRequest );
+
+      int statusCode = inboundResponse.getStatusLine().getStatusCode();
+      if( statusCode != 201 ) {
+        LOG.dispatchResponseStatusCode( statusCode );
+      } else {
+        Header location = inboundResponse.getFirstHeader( "Location" );
+        if( location == null ) {
+          LOG.dispatchResponseStatusCode( statusCode );
+        } else {
+          LOG.dispatchResponseCreatedStatusCode( statusCode, location.getValue() );
+        }
+      }
+      auditor.audit( Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.SUCCESS, RES.responseStatus( statusCode ) );
+    } catch( Exception e ) {
+      // We do not want to expose back end host. port end points to clients, see JIRA KNOX-58
+      auditor.audit( Action.DISPATCH, outboundRequest.getURI().toString(), ResourceType.URI, ActionOutcome.FAILURE );
+      LOG.dispatchServiceConnectionException( outboundRequest.getURI(), e );
+      throw new IOException( RES.dispatchConnectionError() );
+    }
+    return inboundResponse;
+  }
 
   protected void writeOutboundResponse(HttpUriRequest outboundRequest, HttpServletRequest inboundRequest, HttpServletResponse outboundResponse, HttpResponse inboundResponse) throws IOException {
     // Copy the client respond header to the server respond.
@@ -162,7 +142,7 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
     }
     for ( Header header : headers ) {
       String name = header.getName();
-      if (hasExcludeHeaders && excludeHeaders.contains(name)) {
+      if (hasExcludeHeaders && excludeHeaders.contains(name.toUpperCase())) {
         continue;
       }
       String value = header.getValue();
@@ -210,38 +190,6 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
    protected void addCredentialsToRequest(HttpUriRequest outboundRequest) {
    }
 
-   protected HttpResponse executeKerberosDispatch(HttpUriRequest outboundRequest,
-                                                  HttpClient client) throws IOException {
-      HttpResponse inboundResponse;
-      String appCookie = appCookieManager.getCachedAppCookie();
-      if (appCookie != null) {
-         outboundRequest.addHeader(new BasicHeader(COOKIE, appCookie));
-      }
-      inboundResponse = client.execute(outboundRequest);
-      // if inBoundResponse has status 401 and header WWW-Authenticate: Negoitate
-      // refresh hadoop.auth.cookie and attempt one more time
-      int statusCode = inboundResponse.getStatusLine().getStatusCode();
-      if (statusCode == HttpStatus.SC_UNAUTHORIZED) {
-         Header[] wwwAuthHeaders = inboundResponse.getHeaders(WWW_AUTHENTICATE);
-         if (wwwAuthHeaders != null && wwwAuthHeaders.length != 0 &&
-               wwwAuthHeaders[0].getValue().trim().startsWith(NEGOTIATE)) {
-            //need to consume the previous inbound response first
-            EntityUtils.consume(inboundResponse.getEntity());
-
-            appCookie = appCookieManager.getAppCookie(outboundRequest, true);
-            outboundRequest.removeHeaders(COOKIE);
-            outboundRequest.addHeader(new BasicHeader(COOKIE, appCookie));
-            inboundResponse = client.execute(outboundRequest);
-         } else {
-            // no supported authentication type found
-            // we would let the original response propagate
-         }
-      } else {
-         // not a 401 Unauthorized status code
-         // we would let the original response propagate
-      }
-      return inboundResponse;
-   }
 
    protected HttpEntity createRequestEntity(HttpServletRequest request)
          throws IOException {
@@ -256,20 +204,21 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
       } else {
          entity = new InputStreamEntity(contentStream, contentLength, ContentType.parse(contentType));
       }
-
-
-      if ("true".equals(System.getProperty(GatewayConfig.HADOOP_KERBEROS_SECURED))) {
-
-         //Check if delegation token is supplied in the request
-         boolean delegationTokenPresent = false;
-         String queryString = request.getQueryString();
-         if (queryString != null) {
-            delegationTokenPresent = queryString.startsWith("delegation=") ||
-                  queryString.contains("&delegation=");
-         }
-         if (!delegationTokenPresent && getReplayBufferSize() > 0) {
-            entity = new CappedBufferHttpEntity(entity, getReplayBufferSize() * 1024);
-         }
+      GatewayConfig config =
+         (GatewayConfig)request.getServletContext().getAttribute( GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE );
+      if( config != null && config.isHadoopKerberosSecured() ) {
+        //Check if delegation token is supplied in the request
+        boolean delegationTokenPresent = false;
+        String queryString = request.getQueryString();
+        if (queryString != null) {
+          delegationTokenPresent = queryString.startsWith("delegation=") || queryString.contains("&delegation=");
+        }
+        if (replayBufferSize < 0) {
+          replayBufferSize = config.getHttpServerRequestBuffer();
+        }
+        if (!delegationTokenPresent && replayBufferSize > 0 ) {
+          entity = new PartiallyRepeatableHttpEntity(entity, replayBufferSize);
+        }
       }
 
       return entity;
@@ -278,7 +227,7 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
    @Override
    public void doGet(URI url, HttpServletRequest request, HttpServletResponse response)
          throws IOException, URISyntaxException {
-      HttpGet method = new HttpGet(url);
+     HttpGet method = new HttpGet(url);
       // https://issues.apache.org/jira/browse/KNOX-107 - Service URLs not rewritten for WebHDFS GET redirects
       method.getParams().setBooleanParameter("http.protocol.handle-redirects", false);
       copyRequestHeaderFields(method, request);
@@ -318,15 +267,6 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
       HttpDelete method = new HttpDelete(url);
       copyRequestHeaderFields(method, request);
       executeRequest(method, request, response);
-   }
-
-   protected int getReplayBufferSize() {
-      return replayBufferSize;
-   }
-
-   @Configure
-   protected void setReplayBufferSize(@Default("8") int size) {
-      replayBufferSize = size;
    }
 
   public Set<String> getOutboundResponseExcludeHeaders() {
