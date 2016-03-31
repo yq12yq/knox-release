@@ -1,6 +1,9 @@
 Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence not covered by CHANGES.txt.
 
+
+
   BUG FIXES
+    KNOX-601: Knox test failures on windows
     KNOX-476 implementation for X-Forwarded-* headers support and population (Sumit Gupta)
     Fixed version number of new module gateway-server-xforwarded-filter (Sumit Gupta)
     KNOX-546 Consuming intermediate response during kerberos request dispatching (Sumit Gupta)
