@@ -26,7 +26,7 @@
     </parent>
     <groupId>org.apache.knox</groupId>
     <artifactId>gateway</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.10.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>gateway</name>
@@ -64,6 +64,7 @@
         <module>gateway-provider-identity-assertion-common</module>
         <module>gateway-provider-identity-assertion-concat</module>
         <module>gateway-provider-identity-assertion-regex</module>
+        <module>gateway-provider-identity-assertion-switchcase</module>
         <module>gateway-provider-security-picketlink</module>
         <module>gateway-provider-identity-assertion-pseudo</module>
         <module>gateway-provider-jersey</module>
@@ -97,7 +98,7 @@
         <gateway-name>Apache Knox</gateway-name>
         <gateway-project>knox</gateway-project>
         <gateway-artifact>knox</gateway-artifact>
-        <gateway-version>0.9.0-SNAPSHOT</gateway-version>
+        <gateway-version>0.10.0-SNAPSHOT</gateway-version>
         <gateway-group>org.apache.knox</gateway-group>
         <groovy-version>2.4.6</groovy-version>
         <hadoop-version>2.2.0</hadoop-version>
@@ -502,6 +503,11 @@
             <dependency>
                 <groupId>${gateway-group}</groupId>
                 <artifactId>gateway-provider-identity-assertion-regex</artifactId>
+                <version>${gateway-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>${gateway-group}</groupId>
+                <artifactId>gateway-provider-identity-assertion-switchcase</artifactId>
                 <version>${gateway-version}</version>
             </dependency>
             <dependency>
@@ -1079,6 +1085,22 @@
                 <groupId>net.lingala.zip4j</groupId>
                 <artifactId>zip4j</artifactId>
                 <version>1.3.2</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-annotations</artifactId>
+                <version>${jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>apache-jsp</artifactId>
+                <version>${jetty-version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>apache-jstl</artifactId>
+                <version>${jetty-version}</version>
             </dependency>
 
             <!-- ********** ********** ********** ********** ********** ********** -->

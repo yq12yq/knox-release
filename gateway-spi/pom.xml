@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-spi</artifactId>
 
@@ -109,6 +109,10 @@
         <dependency>
             <groupId>commons-collections</groupId>
             <artifactId>commons-collections</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
         </dependency>
 
         <dependency>

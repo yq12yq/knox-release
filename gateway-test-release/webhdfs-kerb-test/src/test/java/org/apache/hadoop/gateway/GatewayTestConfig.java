@@ -285,6 +285,16 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   }
 
   @Override
+  public int getHttpClientConnectionTimeout() {
+    return -1;
+  }
+
+  @Override
+  public int getHttpClientSocketTimeout() {
+    return -1;
+  }
+
+  @Override
   public int getThreadPoolMax() {
     return 16;
   }
@@ -317,6 +327,22 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   @Override
   public long getGatewayDeploymentsBackupAgeLimit() {
     return Long.MAX_VALUE;
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getSigningKeystoreName()
+   */
+  @Override
+  public String getSigningKeystoreName() {
+    return null;
+  }
+
+  /* (non-Javadoc)
+   * @see org.apache.hadoop.gateway.config.GatewayConfig#getSigningKeyAlias()
+   */
+  @Override
+  public String getSigningKeyAlias() {
+    return null;
   }
 
 }

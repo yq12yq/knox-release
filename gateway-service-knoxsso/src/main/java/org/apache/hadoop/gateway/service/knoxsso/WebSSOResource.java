@@ -27,6 +27,7 @@ import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -52,6 +53,7 @@ public class WebSSOResource {
   private static final String SSO_COOKIE_MAX_AGE_INIT_PARAM = "knoxsso.cookie.max.age";
   private static final String SSO_COOKIE_DOMAIN_SUFFIX_PARAM = "knoxsso.cookie.domain.suffix";
   private static final String SSO_COOKIE_TOKEN_TTL_PARAM = "knoxsso.token.ttl";
+  private static final String SSO_COOKIE_TOKEN_AUDIENCES_PARAM = "knoxsso.token.audiences";
   private static final String SSO_COOKIE_TOKEN_WHITELIST_PARAM = "knoxsso.redirect.whitelist.regex";
   private static final String SSO_ENABLE_SESSION_PARAM = "knoxsso.enable.session";
   private static final String ORIGINAL_URL_REQUEST_PARAM = "originalUrl";
@@ -66,6 +68,7 @@ public class WebSSOResource {
   private long tokenTTL = 30000l;
   private String whitelist = null;
   private String domainSuffix = null;
+  private String[] targetAudiences = null;
   private boolean enableSession = false;
 
   @Context
@@ -104,6 +107,11 @@ public class WebSSOResource {
     if (whitelist == null) {
       // default to local/relative targets
       whitelist = DEFAULT_WHITELIST;
+    }
+
+    String audiences = context.getInitParameter(SSO_COOKIE_TOKEN_AUDIENCES_PARAM);
+    if (audiences != null) {
+      targetAudiences = audiences.split(",");
     }
 
     String ttl = context.getInitParameter(SSO_COOKIE_TOKEN_TTL_PARAM);
@@ -158,9 +166,11 @@ public class WebSSOResource {
     Principal p = ((HttpServletRequest)request).getUserPrincipal();
 
     try {
-      JWT token = ts.issueToken(p, "RS256", System.currentTimeMillis() + tokenTTL);
-
-      addJWTHadoopCookie(original, token);
+      JWT token = ts.issueToken(p, "RS256", getExpiry());
+      // Coverity CID 1327959
+      if( token != null ) {
+        addJWTHadoopCookie( original, token );
+      }
 
       if (removeOriginalUrlCookie) {
         removeOriginalUrlCookie(response);
@@ -188,10 +198,25 @@ public class WebSSOResource {
 
     if (!enableSession) {
       // invalidate the session to avoid autologin
-      request.getSession(false).invalidate();
+      // Coverity CID 1352857
+      HttpSession session = request.getSession(false);
+      if( session != null ) {
+        session.invalidate();
+      }
     }
 
     return Response.seeOther(location).entity("{ \"redirectTo\" : " + original + " }").build();
+  }
+
+  private long getExpiry() {
+    long expiry = 0l;
+    if (tokenTTL == -1) {
+      expiry = -1;
+    }
+    else {
+      expiry = System.currentTimeMillis() + tokenTTL;
+    }
+    return expiry;
   }
 
   private void addJWTHadoopCookie(String original, JWT token) {
@@ -229,9 +254,11 @@ public class WebSSOResource {
   private String getCookieValue(HttpServletRequest request, String name) {
     Cookie[] cookies = request.getCookies();
     String value = null;
-    for(Cookie cookie : cookies){
-      if(name.equals(cookie.getName())){
-        value = cookie.getValue();
+    if (cookies != null) {
+      for(Cookie cookie : cookies){
+        if(name.equals(cookie.getName())){
+          value = cookie.getValue();
+        }
       }
     }
     if (value == null) {

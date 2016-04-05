@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-release</artifactId>
 
@@ -261,6 +261,10 @@
         <dependency>
             <groupId>${gateway-group}</groupId>
             <artifactId>gateway-provider-identity-assertion-regex</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${gateway-group}</groupId>
+            <artifactId>gateway-provider-identity-assertion-switchcase</artifactId>
         </dependency>
         <dependency>
             <groupId>${gateway-group}</groupId>

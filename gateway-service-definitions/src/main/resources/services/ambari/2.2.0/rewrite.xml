@@ -27,4 +27,8 @@
             <apply path="$.**.href" rule="AMBARI/ambari/href/outbound"/>
         </content>
     </filter>
+    <filter name="AMBARI/ambari/api/inbound">
+        <content type="application/x-www-form-urlencoded" asType="application/octet-stream">
+        </content>
+    </filter>
 </rules>

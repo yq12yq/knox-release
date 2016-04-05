@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-server</artifactId>
 
@@ -192,6 +192,22 @@
             <artifactId>joda-time</artifactId>
         </dependency>
 
+        <!--
+        These dependencies (jetty-annotations, apache-jsp, apache-jstl) are required for JSP support.
+        The need to be late in the classpath for some reason otherwise class loading issues occur.
+        -->
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>apache-jsp</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>apache-jstl</artifactId>
+        </dependency>
 
         <!-- ********** ********** ********** ********** ********** ********** -->
         <!-- ********** Test Dependencies                           ********** -->

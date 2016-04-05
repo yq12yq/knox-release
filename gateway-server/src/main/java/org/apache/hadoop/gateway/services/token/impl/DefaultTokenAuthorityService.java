@@ -23,6 +23,8 @@ import java.security.PublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 import javax.security.auth.Subject;
 
@@ -43,9 +45,11 @@ import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.crypto.RSASSAVerifier;
 
 public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
-  
+
+  private static String SIGNING_KEY_PASSPHRASE = "signing.key.passphrase";
   private AliasService as = null;
   private KeystoreService ks = null;
+  String signingKeyAlias = null;
 
   public void setKeystoreService(KeystoreService ks) {
     this.ks = ks;
@@ -77,30 +81,37 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
    */
   @Override
   public JWTToken issueToken(Principal p, String algorithm, long expires) throws TokenServiceException {
-    return issueToken(p, null, algorithm, expires);
+    return issueToken(p, (String)null, algorithm, expires);
   }
 
   public JWTToken issueToken(Principal p, String audience, String algorithm)
       throws TokenServiceException {
     return issueToken(p, audience, algorithm, -1);
   }
-  
+
   /* (non-Javadoc)
    * @see org.apache.hadoop.gateway.provider.federation.jwt.JWTokenAuthority#issueToken(java.security.Principal, java.lang.String, java.lang.String)
    */
   @Override
   public JWTToken issueToken(Principal p, String audience, String algorithm, long expires)
       throws TokenServiceException {
-    String[] claimArray = new String[4];
-    claimArray[0] = "HSSO";
-    claimArray[1] = p.getName();
-    if (audience == null) {
-      audience = "HSSO";
+    ArrayList<String> audiences = null;
+    if (audience != null) {
+      audiences = new ArrayList<String>();
+      audiences.add(audience);
     }
-    claimArray[2] = audience;
-    // TODO: make the validity period configurable
+    return issueToken(p, audiences, algorithm, expires);
+  }
+
+  @Override
+  public JWTToken issueToken(Principal p, List<String> audiences, String algorithm, long expires)
+      throws TokenServiceException {
+    String[] claimArray = new String[4];
+    claimArray[0] = "KNOXSSO";
+    claimArray[1] = p.getName();
+    claimArray[2] = null;
     if (expires == -1) {
-      claimArray[3] = Long.toString( ( System.currentTimeMillis() ) + 30000);
+      claimArray[3] = null;
     }
     else {
       claimArray[3] = String.valueOf(expires);
@@ -108,16 +119,16 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
 
     JWTToken token = null;
     if ("RS256".equals(algorithm)) {
-      token = new JWTToken("RS256", claimArray);
+      token = new JWTToken("RS256", claimArray, audiences);
       RSAPrivateKey key;
       char[] passphrase = null;
       try {
-        passphrase = as.getGatewayIdentityPassphrase();
+        passphrase = getSigningKeyPassphrase();
       } catch (AliasServiceException e) {
         throw new TokenServiceException(e);
       }
       try {
-        key = (RSAPrivateKey) ks.getKeyForGateway("gateway-identity", 
+        key = (RSAPrivateKey) ks.getSigningKey(getSigningKeyAlias(),
             passphrase);
         JWSSigner signer = new RSASSASigner(key);
         token.sign(signer);
@@ -128,8 +139,23 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
     else {
       throw new TokenServiceException("Cannot issue token - Unsupported algorithm");
     }
-    
+
     return token;
+  }
+
+  private char[] getSigningKeyPassphrase() throws AliasServiceException {
+    char[] phrase = as.getPasswordFromAliasForGateway(SIGNING_KEY_PASSPHRASE);
+    if (phrase == null) {
+      phrase = as.getGatewayIdentityPassphrase();
+    }
+    return phrase;
+  }
+
+  private String getSigningKeyAlias() {
+    if (signingKeyAlias == null) {
+      return "gateway-identity";
+    }
+    return signingKeyAlias;
   }
 
   @Override
@@ -138,7 +164,7 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
     boolean rc = false;
     PublicKey key;
     try {
-      key = ks.getKeystoreForGateway().getCertificate("gateway-identity").getPublicKey();
+      key = ks.getSigningKeystore().getCertificate(getSigningKeyAlias()).getPublicKey();
       JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) key);
       // TODO: interrogate the token for issuer claim in order to determine the public key to use for verification
       // consider jwk for specifying the key too
@@ -156,6 +182,25 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
       throws ServiceLifecycleException {
     if (as == null || ks == null) {
       throw new ServiceLifecycleException("Alias or Keystore service is not set");
+    }
+    signingKeyAlias = config.getSigningKeyAlias();
+
+    @SuppressWarnings("unused")
+    RSAPrivateKey key;
+    char[] passphrase = null;
+    try {
+      passphrase = as.getPasswordFromAliasForGateway(SIGNING_KEY_PASSPHRASE);
+      if (passphrase != null) {
+        key = (RSAPrivateKey) ks.getSigningKey(getSigningKeyAlias(),
+            passphrase);
+        if (key == null) {
+          throw new ServiceLifecycleException("Provisioned passphrase cannot be used to acquire signing key.");
+        }
+      }
+    } catch (AliasServiceException e) {
+      throw new ServiceLifecycleException("Provisioned signing key passphrase cannot be acquired.", e);
+    } catch (KeystoreServiceException e) {
+      throw new ServiceLifecycleException("Provisioned signing key passphrase cannot be acquired.", e);
     }
   }
 

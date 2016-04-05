@@ -89,6 +89,7 @@ import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
+import org.eclipse.jetty.webapp.Configuration;
 import org.eclipse.jetty.webapp.WebAppContext;
 import org.jboss.shrinkwrap.api.exporter.ExplodedExporter;
 import org.jboss.shrinkwrap.api.spec.EnterpriseArchive;
@@ -257,7 +258,7 @@ public class GatewayServer {
 
   private void cleanupTopologyDeployments( File deployDir, Topology topology ) {
     log.cleanupDeployments( topology.getName() );
-    File[] files = deployDir.listFiles( new RegexDirFilter( topology.getName() + "\\.(war|topo)\\.[0-9A-Fa-f]+" ) );
+    File[] files = deployDir.listFiles( new RegexFilenameFilter( topology.getName() + "\\.(war|topo)\\.[0-9A-Fa-f]+" ) );
     if( files != null ) {
       Arrays.sort( files, new FileModificationTimeDescendingComparator() );
       int verLimit = config.getGatewayDeploymentsBackupVersionLimit();
@@ -288,7 +289,9 @@ public class GatewayServer {
       services.start();
       DeploymentFactory.setGatewayServices(services);
       server.start();
-      log.startedGateway( server.jetty.getURI().getPort() );
+      // Coverity CID 1352654
+      URI uri = server.jetty.getURI();
+      log.startedGateway( uri != null ? uri.getPort() : -1 );
       return server;
     }
   }
@@ -365,6 +368,12 @@ public class GatewayServer {
     jetty.addConnector( createConnector( jetty, config ) );
     jetty.setHandler( createHandlers( config, services, contexts ) );
 
+    // Add Annotations processing into the Jetty server to support JSPs
+    Configuration.ClassList classlist = Configuration.ClassList.setServerDefault( jetty );
+    classlist.addBefore(
+        "org.eclipse.jetty.webapp.JettyWebXmlConfiguration",
+        "org.eclipse.jetty.annotations.AnnotationConfiguration" );
+
     // Load the current topologies.
     File topologiesDir = calculateAbsoluteTopologiesDir();
     log.loadingTopologiesFromDirectory(topologiesDir.getAbsolutePath());
@@ -431,6 +440,10 @@ public class GatewayServer {
     context.setAttribute( GatewayServices.GATEWAY_CLUSTER_ATTRIBUTE, topoName );
     context.setAttribute( "org.apache.knox.gateway.frontend.uri", getFrontendUri( context, config ) );
     context.setAttribute( GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE, config );
+    // Add support for JSPs.
+    context.setAttribute(
+        "org.eclipse.jetty.server.webapp.ContainerIncludeJarPattern",
+        ".*/[^/]*servlet-api-[^/]*\\.jar$|.*/javax.servlet.jsp.jstl-.*\\.jar$|.*/[^/]*taglibs.*\\.jar$" );
     context.setTempDirectory( FileUtils.getFile( warFile, "META-INF", "temp" ) );
     context.setErrorHandler( createErrorHandler() );
     return context;
@@ -495,22 +508,21 @@ public class GatewayServer {
   private synchronized void internalDeployApplication( Topology topology, File topoDir, Application application, String url ) throws IOException, ZipException, TransformerException, SAXException, ParserConfigurationException {
     File appsDir = new File( config.getGatewayApplicationsDir() );
     File appDir = new File( appsDir, application.getName() );
-    if( !appDir.exists() ) {
-      appDir = new File( appsDir, application.getName() + ".war" );
+    File[] implFiles = appDir.listFiles( new RegexFilenameFilter( "app|app\\..*" ) );
+    if( implFiles == null || implFiles.length == 0 ) {
+      throw new DeploymentException( "Failed to find application in " + appDir );
     }
-    if( !appDir.exists() ) {
-      throw new DeploymentException( "Application archive does not exist: " + appDir.getAbsolutePath() );
-    }
+    File implFile = implFiles[0];
     File warDir = new File( topoDir, Urls.encode( "/" + Urls.trimLeadingAndTrailingSlash( url ) ) );
     File webInfDir = new File( warDir, "WEB-INF" );
-    explodeWar( appDir, warDir );
+    explodeWar( implFile, warDir );
     mergeWebXmlOverrides( webInfDir );
     createArchiveTempDir( warDir );
   }
 
   private synchronized void internalActivateTopology( Topology topology, File topoDir ) throws IOException, ZipException, ParserConfigurationException, TransformerException, SAXException {
     log.activatingTopology( topology.getName() );
-    File[] files = topoDir.listFiles( new RegexDirFilter( "%.*" ) );
+    File[] files = topoDir.listFiles( new RegexFilenameFilter( "%.*" ) );
     if( files != null ) {
       for( File file : files ) {
         internalActivateArchive( topology, file );
@@ -596,7 +608,7 @@ public class GatewayServer {
 
     private void handleDeleteDeployment(Topology topology, File deployDir) {
       log.deletingTopology( topology.getName() );
-      File[] files = deployDir.listFiles( new RegexDirFilter( topology.getName() + "\\.(war|topo)\\.[0-9A-Fa-f]+" ) );
+      File[] files = deployDir.listFiles( new RegexFilenameFilter( topology.getName() + "\\.(war|topo)\\.[0-9A-Fa-f]+" ) );
       if( files != null ) {
         auditor.audit(Action.UNDEPLOY, topology.getName(), ResourceType.TOPOLOGY,
           ActionOutcome.UNAVAILABLE);
@@ -704,11 +716,11 @@ public class GatewayServer {
     socket.close();
   }
 
-  private class RegexDirFilter implements FilenameFilter {
+  private class RegexFilenameFilter implements FilenameFilter {
 
     Pattern pattern;
 
-    RegexDirFilter( String regex ) {
+    RegexFilenameFilter( String regex ) {
       pattern = Pattern.compile( regex );
     }
 

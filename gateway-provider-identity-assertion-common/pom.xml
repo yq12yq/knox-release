@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.9.0-SNAPSHOT</version>
+        <version>0.10.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-provider-identity-assertion-common</artifactId>
 
@@ -62,6 +62,11 @@
         <dependency>
             <groupId>${gateway-group}</groupId>
             <artifactId>gateway-test-utils</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.velocity</groupId>
+            <artifactId>velocity</artifactId>
             <scope>test</scope>
         </dependency>
 
