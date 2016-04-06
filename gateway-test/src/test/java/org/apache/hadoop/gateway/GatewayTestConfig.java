@@ -258,4 +258,15 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   public String getEphemeralDHKeySize() {
     return "2048";
   }
+
+  @Override
+  public int getHttpClientConnectionTimeout() {
+    return -1;
+  }
+
+  @Override
+  public int getHttpClientSocketTimeout() {
+    return -1;
+  }
+
 }

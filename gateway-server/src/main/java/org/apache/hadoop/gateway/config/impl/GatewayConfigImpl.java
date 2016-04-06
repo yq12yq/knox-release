@@ -22,6 +22,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.gateway.GatewayMessages;
 import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.joda.time.Period;
+import org.joda.time.format.PeriodFormatter;
+import org.joda.time.format.PeriodFormatterBuilder;
 
 import java.io.File;
 import java.net.InetSocketAddress;
@@ -112,6 +115,8 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   private static final String KEYSTORE_TYPE = GATEWAY_CONFIG_FILE_PREFIX + ".keystore.type";
   private static final String XFORWARDED_ENABLED = GATEWAY_CONFIG_FILE_PREFIX + ".xforwarded.enabled";
   private static final String EPHEMERAL_DH_KEY_SIZE = GATEWAY_CONFIG_FILE_PREFIX + ".jdk.tls.ephemeralDHKeySize";
+  private static final String HTTP_CLIENT_CONNECTION_TIMEOUT = GATEWAY_CONFIG_FILE_PREFIX + ".httpclient.connectionTimeout";
+  private static final String HTTP_CLIENT_SOCKET_TIMEOUT = GATEWAY_CONFIG_FILE_PREFIX + ".httpclient.socketTimeout";
 
   // These config property names are not inline with the convention of using the
   // GATEWAY_CONFIG_FILE_PREFIX as is done by those above. These are left for
@@ -445,4 +450,42 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   public String getEphemeralDHKeySize() {
     return get( EPHEMERAL_DH_KEY_SIZE, "2048");
   }
+
+  @Override
+  public int getHttpClientConnectionTimeout() {
+    int t = -1;
+    String s = get( HTTP_CLIENT_CONNECTION_TIMEOUT, null );
+    if ( s != null ) {
+      try {
+        t = (int)parseNetworkTimeout( s );
+      } catch ( Exception e ) {
+        // Ignore it and use the default.
+      }
+    }
+    return t;
+  }
+
+  @Override
+  public int getHttpClientSocketTimeout() {
+    int t = -1;
+    String s = get( HTTP_CLIENT_SOCKET_TIMEOUT, null );
+    if ( s != null ) {
+      try {
+        t = (int)parseNetworkTimeout( s );
+      } catch ( Exception e ) {
+        // Ignore it and use the default.
+      }
+    }
+    return t;
+  }
+
+  private static long parseNetworkTimeout( String s ) {
+    PeriodFormatter f = new PeriodFormatterBuilder()
+        .appendMinutes().appendSuffix("m"," min")
+        .appendSeconds().appendSuffix("s"," sec")
+        .appendMillis().toFormatter();
+    Period p = Period.parse( s, f );
+    return p.toStandardDuration().getMillis();
+  }
+
 }

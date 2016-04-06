@@ -43,7 +43,13 @@ import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicHeader;
+import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
+import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
+import org.apache.http.params.SyncBasicHttpParams;
 import org.apache.http.util.EntityUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -79,6 +85,9 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
 
   private int replayBufferSize = 0;
   private Set<String> outboundResponseExcludeHeaders;
+  private int httpClientConnectionTimeout = -1;
+  private int httpClientSocketTimeout = -1;
+  private HttpParams httpParams = null;
 
   @Override
   public void init() {
@@ -228,7 +237,7 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
             //need to consume the previous inbound response first
             EntityUtils.consume(inboundResponse.getEntity());
 
-            appCookie = appCookieManager.getAppCookie(outboundRequest, true);
+            appCookie = appCookieManager.getAppCookie(outboundRequest, getDefaultHttpParams(), true);
             outboundRequest.removeHeaders(COOKIE);
             outboundRequest.addHeader(new BasicHeader(COOKIE, appCookie));
             inboundResponse = client.execute(outboundRequest);
@@ -280,7 +289,7 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
          throws IOException, URISyntaxException {
       HttpGet method = new HttpGet(url);
       // https://issues.apache.org/jira/browse/KNOX-107 - Service URLs not rewritten for WebHDFS GET redirects
-      method.getParams().setBooleanParameter("http.protocol.handle-redirects", false);
+      // method.getParams().setBooleanParameter("http.protocol.handle-redirects", false);
       copyRequestHeaderFields(method, request);
       executeRequest(method, request, response);
    }
@@ -332,4 +341,31 @@ public class DefaultDispatch extends AbstractGatewayDispatch {
   public Set<String> getOutboundResponseExcludeHeaders() {
     return outboundResponseExcludeHeaders;
   }
+
+  @Configure
+  protected void setHttpClientConnectionTimeout(@Default("-1") int timeout) {
+    httpClientConnectionTimeout = timeout;
+  }
+
+  @Configure
+  protected void setHttpClientSocketTimeout(@Default("-1") int timeout) {
+    httpClientSocketTimeout = timeout;
+  }
+
+  protected HttpParams getDefaultHttpParams() {
+    if ( httpParams == null ) {
+      BasicHttpParams params = new SyncBasicHttpParams();
+      DefaultHttpClient.setDefaultHttpParams( params );
+      params.setBooleanParameter( "http.protocol.handle-redirects", false );
+      if( httpClientConnectionTimeout != -1 ) {
+        HttpConnectionParams.setConnectionTimeout( params, httpClientConnectionTimeout );
+      }
+      if( httpClientSocketTimeout != -1 ) {
+        HttpConnectionParams.setSoTimeout( params, httpClientSocketTimeout );
+      }
+      httpParams = params;
+    }
+    return httpParams;
+  }
+
 }

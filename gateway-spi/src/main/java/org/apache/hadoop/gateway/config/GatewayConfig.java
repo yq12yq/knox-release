@@ -106,4 +106,9 @@ public interface GatewayConfig {
   boolean isXForwardedEnabled();
 
   String getEphemeralDHKeySize();
+
+  int getHttpClientConnectionTimeout();
+
+  int getHttpClientSocketTimeout();
+
 }

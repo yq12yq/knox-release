@@ -199,11 +199,11 @@ public class ServiceDefinitionDeploymentContributor extends ServiceDeploymentCon
   private void addDispatchFilterForClass(DeploymentContext context, Service service, ResourceDescriptor resource, String className) {
     FilterDescriptor filter = resource.addFilter().name(getName()).role(DISPATCH_ROLE).impl(GatewayDispatchFilter.class);
     filter.param().name(DISPATCH_IMPL_PARAM).value(className);
-    FilterParamDescriptor filterParam = filter.param().name(REPLAY_BUFFER_SIZE_PARAM).value(DEFAULT_REPLAY_BUFFER_SIZE);
     for ( Map.Entry<String, String> serviceParam : service.getParams().entrySet() ) {
-      if ( REPLAY_BUFFER_SIZE_PARAM.equals(serviceParam.getKey()) ) {
-        filterParam.value(serviceParam.getValue());
-      }
+      filter.param().name(serviceParam.getKey()).value(serviceParam.getValue());
+    }
+    if ( !service.getParams().containsKey(REPLAY_BUFFER_SIZE_PARAM)) {
+      filter.param().name(REPLAY_BUFFER_SIZE_PARAM).value(DEFAULT_REPLAY_BUFFER_SIZE);
     }
     if ( context.getGatewayConfig().isHadoopKerberosSecured() ) {
       filter.param().name("kerberos").value("true");

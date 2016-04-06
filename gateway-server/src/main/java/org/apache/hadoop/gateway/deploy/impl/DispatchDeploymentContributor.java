@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 public class DispatchDeploymentContributor extends ProviderDeploymentContributorBase {
-  
+
   private static final String REPLAY_BUFFER_SIZE_PARAM = "replayBufferSize";
 
   private static final String DISPATCH_IMPL_PARAM = "dispatch-impl";
@@ -53,18 +53,11 @@ public class DispatchDeploymentContributor extends ProviderDeploymentContributor
   public void contributeFilter( DeploymentContext context, Provider provider, Service service, ResourceDescriptor resource, List<FilterParamDescriptor> params ) {
     FilterDescriptor filter = resource.addFilter().name( getName() ).role( getRole() ).impl( GatewayDispatchFilter.class );
     filter.param().name(DISPATCH_IMPL_PARAM).value(DefaultDispatch.class.getName());
-    FilterParamDescriptor filterParam = filter.param().name( REPLAY_BUFFER_SIZE_PARAM ).value( DEFAULT_REPLAY_BUFFER_SIZE );
     for ( Map.Entry<String,String> serviceParam : service.getParams().entrySet() ) {
-      if ( REPLAY_BUFFER_SIZE_PARAM.equals( serviceParam.getKey() ) ) {
-        filterParam.value( serviceParam.getValue() );
-      }
+      filter.param().name( serviceParam.getKey() ).value( serviceParam.getValue() );
     }
-    if ( params != null ) {
-      for ( FilterParamDescriptor customParam : params ) {
-        if ( REPLAY_BUFFER_SIZE_PARAM.equals( customParam.name() ) ) {
-          filterParam.value( customParam.value() );
-        }
-      }
+    if( !service.getParams().containsKey(REPLAY_BUFFER_SIZE_PARAM)) {
+      filter.param().name(REPLAY_BUFFER_SIZE_PARAM).value(DEFAULT_REPLAY_BUFFER_SIZE);
     }
     if( context.getGatewayConfig().isHadoopKerberosSecured() ) {
       filter.param().name("kerberos").value("true");

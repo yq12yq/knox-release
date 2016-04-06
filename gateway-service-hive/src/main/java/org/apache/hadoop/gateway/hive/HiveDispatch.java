@@ -86,7 +86,7 @@ public class HiveDispatch extends DefaultDispatch {
 
   protected HttpResponse executeKerberosDispatch(HttpUriRequest outboundRequest,
       HttpClient httpClient) throws IOException {
-    DefaultHttpClient client = new DefaultHttpClient();
+    DefaultHttpClient client = new DefaultHttpClient( getDefaultHttpParams() );
     SPNegoSchemeFactory spNegoSF = new KnoxSpnegoAuthSchemeFactory(/*stripPort*/true);
     //SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(/*stripPort*/true);
     // spNegoSF.setSpengoGenerator(new BouncySpnegoTokenGenerator());

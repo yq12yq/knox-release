@@ -17,19 +17,7 @@
  */
 package org.apache.hadoop.gateway.dispatch;
 
-import org.apache.hadoop.gateway.SpiGatewayMessages;
-import org.apache.hadoop.gateway.filter.AbstractGatewayFilter;
-import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
-import org.apache.http.client.CookieStore;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import java.io.Closeable;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,6 +26,24 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.hadoop.gateway.SpiGatewayMessages;
+import org.apache.hadoop.gateway.config.ConfigurationAdapter;
+import org.apache.hadoop.gateway.config.ConfigurationException;
+import org.apache.hadoop.gateway.config.FilterConfigurationAdapter;
+import org.apache.hadoop.gateway.config.GatewayConfig;
+import org.apache.hadoop.gateway.filter.AbstractGatewayFilter;
+import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.cookie.Cookie;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
 import static org.apache.hadoop.gateway.config.ConfigurationInjectorBuilder.configuration;
 
@@ -49,7 +55,7 @@ public class GatewayDispatchFilter extends AbstractGatewayFilter {
 
   private Dispatch dispatch;
 
-  private CloseableHttpClient httpClient;
+  private HttpClient httpClient;
 
   private static Map<String, Adapter> createMethodAdapters() {
     Map<String, Adapter> map = new HashMap<String, Adapter>();
@@ -68,8 +74,15 @@ public class GatewayDispatchFilter extends AbstractGatewayFilter {
       String dispatchImpl = filterConfig.getInitParameter("dispatch-impl");
       dispatch = newDispatch(dispatchImpl);
     }
-    configuration().target(dispatch).source(filterConfig).inject();
-    httpClient = HttpClients.custom().setDefaultCookieStore(new NoCookieStore()).build();
+    GatewayConfig globalConfig =
+        (GatewayConfig)filterConfig.getServletContext().getAttribute( GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE );
+    configuration()
+        .target( dispatch ).source( new ConfigAdapter( globalConfig, filterConfig ) )
+        .bind( "httpClientConnectionTimeout", "httpclient.connectionTimeout" )
+        .bind( "httpClientSocketTimeout", "httpclient.socketTimeout" )
+        .inject();
+    HttpClientFactory factory = new DefaultHttpClientFactory();
+    httpClient = factory.createHttpClient( filterConfig );
     //[sumit] this can perhaps be stashed in the servlet context to increase sharing of the client
     dispatch.setHttpClient(httpClient);
     dispatch.init();
@@ -79,7 +92,9 @@ public class GatewayDispatchFilter extends AbstractGatewayFilter {
   public void destroy() {
     dispatch.destroy();
     try {
-      httpClient.close();
+      if( httpClient instanceof Closeable ) {
+        ((Closeable)httpClient).close();
+      }
     } catch ( IOException e ) {
       LOG.errorClosingHttpClient(e);
     }
@@ -172,25 +187,26 @@ public class GatewayDispatchFilter extends AbstractGatewayFilter {
     }
   }
 
-  private class NoCookieStore implements CookieStore {
-    @Override
-    public void addCookie(Cookie cookie) {
-      //no op
+  private static class ConfigAdapter extends FilterConfigurationAdapter {
+    private GatewayConfig globalConfig;
+
+    private ConfigAdapter( GatewayConfig globalConfig, FilterConfig filterConfig ) {
+      super( filterConfig );
+      this.globalConfig = globalConfig;
     }
 
     @Override
-    public List<Cookie> getCookies() {
-      return Collections.EMPTY_LIST;
-    }
-
-    @Override
-    public boolean clearExpired(Date date) {
-      return true;
-    }
-
-    @Override
-    public void clear() {
-      //no op
+    public Object getConfigurationValue( String name ) throws ConfigurationException {
+      Object o = super.getConfigurationValue( name );
+      if ( o == null ) {
+        if ( "httpclient.connectionTimeout".equalsIgnoreCase( name ) ) {
+          o = Integer.valueOf( globalConfig.getHttpClientConnectionTimeout() );
+        } else if ( "httpclient.socketTimeout".equalsIgnoreCase( name ) ) {
+          o = Integer.valueOf( globalConfig.getHttpClientSocketTimeout() );
+        }
+      }
+      return o;
     }
   }
+
 }

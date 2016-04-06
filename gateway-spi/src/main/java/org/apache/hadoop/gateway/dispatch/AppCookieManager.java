@@ -43,6 +43,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.AuthPolicy;
 import org.apache.http.impl.auth.SPNegoSchemeFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.HttpParams;
 import org.apache.http.util.EntityUtils;
 
 /**
@@ -65,15 +66,15 @@ public class AppCookieManager {
 
   String appCookie;
 
-  /**
-   * Utility method to excerise AppCookieManager directly
-   * @param args element 0 of args should be a URL to hadoop service protected by SPengo
-   * @throws IOException in case of errors
-   */
-  public static void main(String[] args) throws IOException {
-    HttpUriRequest outboundRequest = new HttpGet(args[0]);
-    new AppCookieManager().getAppCookie(outboundRequest, false);
-  }
+  ///**
+  // * Utility method to excerise AppCookieManager directly
+  // * @param args element 0 of args should be a URL to hadoop service protected by SPengo
+  // * @throws IOException in case of errors
+  // */
+  //public static void main(String[] args) throws IOException {
+  //  HttpUriRequest outboundRequest = new HttpGet(args[0]);
+  //  new AppCookieManager().getAppCookie(new DefaultHttpClient(), outboundRequest, false);
+  //}
 
   public AppCookieManager() {
   }
@@ -89,7 +90,7 @@ public class AppCookieManager {
    * @throws IOException
    *           in case of errors
    */
-  public String getAppCookie(HttpUriRequest outboundRequest, boolean refresh)
+  public String getAppCookie(HttpUriRequest outboundRequest, HttpParams params, boolean refresh)
       throws IOException {
 
     URI uri = outboundRequest.getURI();
@@ -102,7 +103,7 @@ public class AppCookieManager {
       }
     }
 
-    DefaultHttpClient client = new DefaultHttpClient();
+    DefaultHttpClient client = new DefaultHttpClient( params );
     SPNegoSchemeFactory spNegoSF = new KnoxSpnegoAuthSchemeFactory( /*stripPort*/ true );
     //SPNegoSchemeFactory spNegoSF = new SPNegoSchemeFactory(/* stripPort */true);
     // spNegoSF.setSpengoGenerator(new BouncySpnegoTokenGenerator());
