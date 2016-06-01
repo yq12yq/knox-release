@@ -3,6 +3,10 @@ Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence 
 
 
   BUG FIXES
+    KNOX-556: Knox needs better diagnostics for Keystore failures
+    KNOX-539: Add Message to Identity Mapping Audit Logging
+    KNOX-554: Cannot access topologies through admin API if gateway.path is modified
+    KNOX-603: Coverity: Potential resource leak in BaseKeystoreService.createKeystore
     KNOX-601: Knox test failures on windows
     KNOX-476 implementation for X-Forwarded-* headers support and population (Sumit Gupta)
     Fixed version number of new module gateway-server-xforwarded-filter (Sumit Gupta)
