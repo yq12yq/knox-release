@@ -3,6 +3,7 @@ Changes only in Hortonworks github and not in the released Knoxv0.6.0 and hence 
 
 
   BUG FIXES
+    KNOX-556: Knox needs better diagnostics for Keystore failures
     KNOX-601: Knox test failures on windows
     KNOX-476 implementation for X-Forwarded-* headers support and population (Sumit Gupta)
     Fixed version number of new module gateway-server-xforwarded-filter (Sumit Gupta)
