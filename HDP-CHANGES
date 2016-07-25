@@ -1,8 +1,12 @@
 Changes only in Hortonworks github and not in the released Knox v0.9.0 and hence not covered by CHANGES.txt.
 
-BUG FIXES
+IMPROVEMENTS
+ KNOX-711 - Added the ability to scope rewrite rules
+
+BUF FIXES
  KNOX-705 - Views in Ambari UI don't render when proxied by the AMBARIUI service
  KNOX-705 - Improvement on 404 error messages with ambari views
+ KNOX-705 - rules to support view changes in Ambari
  KNOX-712 - submitPig does not allow multiple argument via arg() (Pierre Regazzoni via lmccay)
  KNOX-713 - Knox Shell HDFS.get.Request is Package Private (Chris Snow via lmccay)
  KNOX-714 - Remove Permissive MIT License from NOTICE File
@@ -10,8 +14,12 @@ BUG FIXES
  KNOX-716 - replayBufferSize is kept in bytes
  KNOX-717 - changed the location header in RANGERUI rewrite to be more specific
  KNOX-721 - added rewrite rules to take care of no slash url
- KNOX-722 - Null Pointer Exception while Knox SSO configured for OKTA/SAML 2
- 
-IMPROVEMENTS
- KNOX-711 Added the ability to scope rewrite rules
-
+ KNOX-721 - added rewrite rules to take care of no slash url
+ KNOX-721 - Loosening up the match criteria as the Location header coming back from Ranger is not always correct
+ KNOX-722 - Null Pointer Exception while Knox SSO configured for OKTA/SAML v2
+ KNOX-722 - changed KnoxSessionStore to not base64 empty cookie value
+ KNOX-722 - Null Pointer Exception while Knox SSO configured for OKTA/SAML v2
+ KNOX-723 - qualifying the login page resources with the frontend path
+ KNOX-724 - ambari view fixes
+ KNOX-725 - defining policy chain for ambari and ranger services
+ KNOX-726 - Clean up Skipped Unit Tests
