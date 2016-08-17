@@ -42,5 +42,4 @@ public class UnixUserPrincipal implements Principal {
     public String toString() {
         return String.valueOf(userName.getUserName());
     }
-
 }
