@@ -56,7 +56,6 @@ import org.junit.experimental.categories.Category;
 public class DefaultDispatchTest {
 
   // Make sure Hadoop cluster topology isn't exposed to client when there is a connectivity issue.
-  @Test
   public void testJiraKnox58() throws URISyntaxException, IOException {
 
     URI uri = new URI( "http://unreachable-host" );
