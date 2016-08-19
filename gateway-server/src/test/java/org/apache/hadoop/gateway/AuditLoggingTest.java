@@ -156,7 +156,6 @@ public class AuditLoggingTest {
 
   }
 
-  @Test
   /**
    * Dispatching outbound request. Remote host is unreachable. Two log events is expected:
    * 
