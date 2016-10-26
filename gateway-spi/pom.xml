@@ -22,7 +22,7 @@
     <parent>
         <groupId>org.apache.knox</groupId>
         <artifactId>gateway</artifactId>
-        <version>0.10.0-SNAPSHOT</version>
+        <version>0.10.0.2.6.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>gateway-spi</artifactId>
 
