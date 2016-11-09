@@ -95,5 +95,11 @@
         </content>
     </filter>
 
+    <filter name="test-filter-5">
+        <content type="*/html">
+            <apply path="(@import)+ .*css.*" rule="test-rule-html-import-attribute"/>
+        </content>
+    </filter>
+
 
 </rules>
