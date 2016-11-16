@@ -53,6 +53,10 @@
         <rewrite template="http://someotherhost/stylesheets/pretty.css"/>
     </rule>
 
+    <rule name="test-rule-html-import-attribute">
+        <rewrite template="{$import[&quot;, url]}/stylesheets/pretty.css&quot;;"/>
+    </rule>
+
     <filter name="test-filter-1">
         <content type="application/json">
             <apply path="$.url" rule="test-rule-1"/>
