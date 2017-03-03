@@ -180,4 +180,28 @@ public class GatewayConfigImplTest {
     assertThat( config.getGlobalRulesServices(), is(hasItems("ONE","TWO","THREE")) );
   }
 
+  @Test( timeout = TestUtils.SHORT_TIMEOUT )
+  public void testMetricsSettings() {
+    GatewayConfigImpl config = new GatewayConfigImpl();
+    //test defaults
+    assertThat(config.isMetricsEnabled(), is(true));
+    assertThat(config.isJmxMetricsReportingEnabled(), is(true));
+    assertThat(config.isGraphiteMetricsReportingEnabled(), is(false));
+    assertThat(config.getGraphiteHost(), is("localhost"));
+    assertThat(config.getGraphitePort(), is(32772));
+  }
+
+  @Test( timeout = TestUtils.SHORT_TIMEOUT )
+  public void testGatewayIdleTimeout() {
+    GatewayConfigImpl config = new GatewayConfigImpl();
+    long idleTimeout = 0l;
+    
+    idleTimeout = config.getGatewayIdleTimeout();
+    assertThat( idleTimeout, is(300000L));
+
+    config.set( GatewayConfigImpl.GATEWAY_IDLE_TIMEOUT, "15000" );
+    idleTimeout = config.getGatewayIdleTimeout();
+    assertThat( idleTimeout, is(15000L));
+  }
+
 }
