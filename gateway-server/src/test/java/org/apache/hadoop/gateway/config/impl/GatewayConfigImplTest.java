@@ -181,17 +181,6 @@ public class GatewayConfigImplTest {
   }
 
   @Test( timeout = TestUtils.SHORT_TIMEOUT )
-  public void testMetricsSettings() {
-    GatewayConfigImpl config = new GatewayConfigImpl();
-    //test defaults
-    assertThat(config.isMetricsEnabled(), is(true));
-    assertThat(config.isJmxMetricsReportingEnabled(), is(true));
-    assertThat(config.isGraphiteMetricsReportingEnabled(), is(false));
-    assertThat(config.getGraphiteHost(), is("localhost"));
-    assertThat(config.getGraphitePort(), is(32772));
-  }
-
-  @Test( timeout = TestUtils.SHORT_TIMEOUT )
   public void testGatewayIdleTimeout() {
     GatewayConfigImpl config = new GatewayConfigImpl();
     long idleTimeout = 0l;
