@@ -125,6 +125,10 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
     return new InetSocketAddress( getGatewayHost(), getGatewayPort() );
   }
 
+  public long getGatewayIdleTimeout() {
+    return 0l;
+  }
+
   @Override
   public boolean isSSLEnabled() {
     return sslEnabled;

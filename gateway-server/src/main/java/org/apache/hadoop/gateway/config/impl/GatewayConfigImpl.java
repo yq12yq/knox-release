@@ -130,6 +130,7 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   public static final String HTTP_SERVER_RESPONSE_HEADER_BUFFER = GATEWAY_CONFIG_FILE_PREFIX + ".httpserver.responseHeaderBuffer";
   public static final String DEPLOYMENTS_BACKUP_VERSION_LIMIT =  GATEWAY_CONFIG_FILE_PREFIX + ".deployment.backup.versionLimit";
   public static final String DEPLOYMENTS_BACKUP_AGE_LIMIT =  GATEWAY_CONFIG_FILE_PREFIX + ".deployment.backup.ageLimit";
+  public static final String GATEWAY_IDLE_TIMEOUT = GATEWAY_CONFIG_FILE_PREFIX + ".idle.timeout";
 
   // These config property names are not inline with the convention of using the
   // GATEWAY_CONFIG_FILE_PREFIX as is done by those above. These are left for
@@ -592,6 +593,11 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
       i = -1;
     }
     return i;
+  }
+
+  @Override
+  public long getGatewayIdleTimeout() {
+    return getLong(GATEWAY_IDLE_TIMEOUT, 300000l);
   }
 
   @Override
