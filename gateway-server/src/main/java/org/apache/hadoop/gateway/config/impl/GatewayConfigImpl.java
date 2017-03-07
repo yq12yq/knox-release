@@ -597,7 +597,7 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
 
   @Override
   public long getGatewayIdleTimeout() {
-    return getLong(GATEWAY_IDLE_TIMEOUT, 0l);
+    return getLong(GATEWAY_IDLE_TIMEOUT, 300000l);
   }
 
   @Override
