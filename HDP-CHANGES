@@ -1,6 +1,7 @@
 Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
 Improvements and Bugs:
+    KNOX-905 - Add httpclient properties to knoxshell log4j properties file
     KNOX-994 - Introducing a new variable  that enhances the  function, needed for Zeppelin / fix
     KNOX-995 - KnoxSSO Form IDP Issue with Firefox
     KNOX-949 - WeBHDFS proxy replaces %20 encoded spaces in URL with + encoding
