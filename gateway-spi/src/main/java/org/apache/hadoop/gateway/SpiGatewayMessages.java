@@ -55,4 +55,6 @@ public interface SpiGatewayMessages {
   @Message( level = MessageLevel.WARN, text = "Skipping unencodable parameter {0}={1}, {2}: {3}" )
   void skippingUnencodableParameter( String name, String value, String encoding, @StackTrace( level = MessageLevel.DEBUG ) Exception e );
 
+  @Message( level = MessageLevel.WARN, text = "Possible identity spoofing attempt - impersonation parameter removed: {0}" )
+  void possibleIdentitySpoofingAttempt( String impersonationParam );
 }

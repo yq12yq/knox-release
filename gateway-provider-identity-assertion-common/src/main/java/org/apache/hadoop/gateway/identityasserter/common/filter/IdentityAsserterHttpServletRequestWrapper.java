@@ -33,10 +33,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 public class IdentityAsserterHttpServletRequestWrapper extends HttpServletRequestWrapper {
@@ -113,7 +115,7 @@ public class IdentityAsserterHttpServletRequestWrapper extends HttpServletReques
   private Map<String, String[]> getParams() {
     return getParams( super.getQueryString() );
   }
-  
+
   @Override
   public String getQueryString() {
     String q = null;
@@ -127,19 +129,47 @@ public class IdentityAsserterHttpServletRequestWrapper extends HttpServletReques
     al.add(username);
     String[] a = { "" };
 
+    List<String> principalParamNames = getImpersonationParamNames();
+    params = scrubOfExistingPrincipalParams(params, principalParamNames);
+
     if ("true".equals(System.getProperty(GatewayConfig.HADOOP_KERBEROS_SECURED))) {
       params.put(DOAS_PRINCIPAL_PARAM, al.toArray(a));
-      params.remove(PRINCIPAL_PARAM);
     } else {
       params.put(PRINCIPAL_PARAM, al.toArray(a));
     }
-    
+
     String encoding = getCharacterEncoding();
     if (encoding == null) {
       encoding = Charset.defaultCharset().name();
     }
     q = urlEncode(params, encoding);
     return q;
+  }
+
+  private List<String> getImpersonationParamNames() {
+    // TODO: let's have service definitions register their impersonation
+    // params in a future release and get this list from a central registry.
+    // This will provide better coverage of protection by removing any
+    // prepopulated impersonation params.
+    ArrayList<String> principalParamNames = new ArrayList<String>();
+    principalParamNames.add(DOAS_PRINCIPAL_PARAM);
+    principalParamNames.add(PRINCIPAL_PARAM);
+    return principalParamNames;
+  }
+
+  private Map<String, String[]> scrubOfExistingPrincipalParams(
+      Map<String, String[]> params, List<String> principalParamNames) {
+    HashSet<String> remove = new HashSet<String>();
+    for (String paramKey : params.keySet()) {
+      for (String p : principalParamNames) {
+        if (p.equalsIgnoreCase(paramKey)) {
+          remove.add(paramKey);
+          log.possibleIdentitySpoofingAttempt(paramKey);
+        }
+      }
+    }
+    params.keySet().removeAll(remove);
+    return params;
   }
 
   @Override
