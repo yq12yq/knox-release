@@ -23,6 +23,7 @@ import org.apache.hadoop.gateway.i18n.messages.Messages;
 import org.apache.hadoop.gateway.i18n.messages.StackTrace;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 
 
 /**
