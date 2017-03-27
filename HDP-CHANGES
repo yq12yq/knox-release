@@ -2,6 +2,7 @@ Changes only in Hortonworks github and not in the released Knox v0.9.0 and hence
 
 IMPROVEMENTS
  KNOX-711 - Added the ability to scope rewrite rules
+ KNOX-910 - Move from SHA-1 to SHA-256 (Jeffrey E Rodriguez via Sandeep More)
 
 BUF FIXES
  KNOX-917 - Fix Pig view in Ambari
