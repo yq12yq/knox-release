@@ -38,6 +38,8 @@ public class JWTFederationFilter extends AbstractJWTFilter {
   public static final String TOKEN_VERIFICATION_PEM = "knox.token.verification.pem";
   private static final String KNOX_TOKEN_QUERY_PARAM_NAME = "knox.token.query.param.name";
   private static final String BEARER = "Bearer ";
+  private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
+  private JWTokenAuthority authority = null;
   private String paramName = "knoxtoken";
 
   @Override
@@ -89,6 +91,7 @@ public class JWTFederationFilter extends AbstractJWTFilter {
         }
       } catch (ParseException ex) {
         ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED);
+        return; // break the filter chain
       }
     }
     else {
@@ -96,6 +99,48 @@ public class JWTFederationFilter extends AbstractJWTFilter {
       ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED);
       return; //break filter chain
     }
+  }
+
+  private boolean validateToken(ServletRequest request, ServletResponse response,
+      FilterChain chain, JWTToken token)
+      throws IOException, ServletException {
+    boolean rc = false;
+    boolean verified = false;
+    try {
+      verified = authority.verifyToken(token);
+    } catch (TokenServiceException e) {
+      log.unableToVerifyToken(e);
+    }
+    if (verified) {
+      // confirm that issue matches intended target - which for this filter must be KNOXSSO
+      if (token.getIssuer().equals("KNOXSSO")) {
+        // if there is no expiration data then the lifecycle is tied entirely to
+        // the cookie validity - otherwise ensure that the current time is before
+        // the designated expiration time
+        if (tokenIsStillValid(token)) {
+          boolean audValid = validateAudiences(token);
+          if (audValid) {
+            rc = true;
+          }
+          else {
+            log.failedToValidateAudience();
+            ((HttpServletResponse) response).sendError(400, "Bad request: missing required token audience");
+          }
+        }
+        else {
+          log.tokenHasExpired();
+          ((HttpServletResponse) response).sendError(400, "Bad request: token has expired");
+        }
+      }
+      else {
+        ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED);
+      }
+    }
+    else {
+      ((HttpServletResponse) response).sendError(HttpServletResponse.SC_UNAUTHORIZED);
+    }
+
+    return rc;
   }
 
   protected void handleValidationError(HttpServletRequest request, HttpServletResponse response, int status,
