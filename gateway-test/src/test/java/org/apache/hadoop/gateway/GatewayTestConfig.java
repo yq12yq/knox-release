@@ -530,4 +530,39 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   public  boolean isCookieScopingToPathEnabled() {
       return false;
   }
+
+  @Override
+  public String getHeaderNameForRemoteAddress() {
+    return "X-Forwarded-For";
+  }
+
+  @Override
+  public String getAlgorithm() {
+	return null;
+  }
+
+  @Override
+  public String getPBEAlgorithm() {
+	return null;
+  }
+
+  @Override
+  public String getTransformation() {
+	return null;
+  }
+
+  @Override
+  public String getSaltSize() {
+	return null;
+  }
+
+  @Override
+  public String getIterationCount() {
+	return null;
+  }
+
+  @Override
+  public String getKeyLength() {
+	return null;
+  }
 }
