@@ -66,7 +66,7 @@ public abstract class AbstractJWTFilter implements Filter {
   public AbstractJWTFilter() {
     super();
   }
-
+  
   @Override
   public void init( FilterConfig filterConfig ) throws ServletException {
     ServletContext context = filterConfig.getServletContext();

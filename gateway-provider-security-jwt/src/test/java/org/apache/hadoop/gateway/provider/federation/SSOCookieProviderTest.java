@@ -153,7 +153,7 @@ public class SSOCookieProviderTest extends AbstractJWTFilterTest {
     }
   }
 */
-
+  
   @Test
   public void testOrigURLWithQueryString() throws Exception {
     Properties props = getProperties();
