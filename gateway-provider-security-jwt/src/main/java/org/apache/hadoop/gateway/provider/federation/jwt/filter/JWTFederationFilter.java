@@ -18,6 +18,7 @@
 package org.apache.hadoop.gateway.provider.federation.jwt.filter;
 
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
+import org.apache.hadoop.gateway.util.CertificateUtils;
 
 import javax.security.auth.Subject;
 import javax.servlet.FilterChain;
@@ -34,6 +35,8 @@ import java.text.ParseException;
 public class JWTFederationFilter extends AbstractJWTFilter {
 
   public static final String KNOX_TOKEN_AUDIENCES = "knox.token.audiences";
+  public static final String TOKEN_VERIFICATION_PEM = "knox.token.verification.pem";
+  private static final String KNOX_TOKEN_QUERY_PARAM_NAME = "knox.token.query.param.name";
   private static final String BEARER = "Bearer ";
   private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
   private JWTokenAuthority authority = null;
@@ -47,6 +50,19 @@ public class JWTFederationFilter extends AbstractJWTFilter {
     String expectedAudiences = filterConfig.getInitParameter(KNOX_TOKEN_AUDIENCES);
     if (expectedAudiences != null) {
       audiences = parseExpectedAudiences(expectedAudiences);
+    }
+
+    // query param name for finding the provided knoxtoken
+    String queryParamName = filterConfig.getInitParameter(KNOX_TOKEN_QUERY_PARAM_NAME);
+    if (queryParamName != null) {
+      paramName = queryParamName;
+    }
+
+    // token verification pem
+    String verificationPEM = filterConfig.getInitParameter(TOKEN_VERIFICATION_PEM);
+    // setup the public key of the token issuer for verification
+    if (verificationPEM != null) {
+      publicKey = CertificateUtils.parseRSAPublicKey(verificationPEM);
     }
   }
 
