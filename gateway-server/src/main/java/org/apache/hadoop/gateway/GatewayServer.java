@@ -55,6 +55,7 @@ import org.apache.hadoop.gateway.util.Urls;
 import org.apache.hadoop.gateway.util.XmlUtils;
 import org.apache.hadoop.gateway.websockets.GatewayWebsocketHandler;
 import org.apache.log4j.PropertyConfigurator;
+import org.eclipse.jetty.server.ConnectionFactory;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.HttpConfiguration;
 import org.eclipse.jetty.server.HttpConnectionFactory;
@@ -311,7 +312,11 @@ public class GatewayServer {
         NetworkConnector connector = (NetworkConnector) server.jetty
             .getConnectors()[i];
         if (connector != null) {
-
+          for(ConnectionFactory x  : connector.getConnectionFactories()) {
+            if(x instanceof HttpConnectionFactory) {
+                ((HttpConnectionFactory)x).getHttpConfiguration().setSendServerVersion(config.isGatewayServerHeaderEnabled());
+            }
+          }
           if (connector.getName() == null) {
             log.startedGateway(
                 connector != null ? connector.getLocalPort() : -1);
@@ -319,7 +324,6 @@ public class GatewayServer {
             log.startedGateway(connector != null ? connector.getName() : "",
                 connector != null ? connector.getLocalPort() : -1);
           }
-
         }
       }
 

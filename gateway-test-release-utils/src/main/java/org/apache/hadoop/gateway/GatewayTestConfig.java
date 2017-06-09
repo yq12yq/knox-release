@@ -529,4 +529,29 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   public String getKeyLength() {
 	return null;
   }
+
+  /**
+   * Map of Topology names and their ports.
+   *
+   * @return
+   */
+  @Override
+  public Map<String, Integer> getGatewayPortMappings() {
+    return topologyPortMapping;
+  }
+
+  /**
+   * Is the Port Mapping feature enabled
+   *
+   * @return
+   */
+  @Override
+  public boolean isGatewayPortMappingEnabled() {
+    return isTopologyPortMappingEnabled;
+  }
+
+  @Override
+  public boolean isGatewayServerHeaderEnabled() {
+	return false;
+  }
 }
