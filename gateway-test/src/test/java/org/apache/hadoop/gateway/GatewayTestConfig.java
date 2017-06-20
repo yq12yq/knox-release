@@ -598,4 +598,5 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   public boolean isGatewayPortMappingEnabled() {
     return isTopologyPortMappingEnabled;
   }
+
 }

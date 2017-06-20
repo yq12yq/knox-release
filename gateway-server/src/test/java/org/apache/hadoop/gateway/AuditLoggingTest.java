@@ -33,7 +33,6 @@ import java.util.Iterator;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -47,7 +46,6 @@ import org.apache.hadoop.gateway.audit.api.ResourceType;
 import org.apache.hadoop.gateway.audit.log4j.audit.AuditConstants;
 import org.apache.hadoop.gateway.audit.log4j.audit.Log4jAuditService;
 import org.apache.hadoop.gateway.audit.log4j.correlation.Log4jCorrelationService;
-import org.apache.hadoop.gateway.config.GatewayConfig;
 import org.apache.hadoop.gateway.dispatch.DefaultDispatch;
 import org.apache.hadoop.gateway.i18n.resources.ResourcesFactory;
 import org.apache.hadoop.test.log.CollectAppender;
@@ -90,21 +88,13 @@ public class AuditLoggingTest {
     EasyMock.replay( config );
 
     HttpServletRequest request = EasyMock.createNiceMock( HttpServletRequest.class );
-    ServletContext context = EasyMock.createNiceMock( ServletContext.class );
-    GatewayConfig gatewayConfig = EasyMock.createNiceMock( GatewayConfig.class );
     EasyMock.expect( request.getMethod() ).andReturn( METHOD ).anyTimes();
     EasyMock.expect( request.getPathInfo() ).andReturn( PATH ).anyTimes();
     EasyMock.expect( request.getContextPath() ).andReturn( CONTEXT_PATH ).anyTimes();
     EasyMock.expect( request.getRemoteAddr() ).andReturn( ADDRESS ).anyTimes();
     EasyMock.expect( request.getRemoteHost() ).andReturn( HOST ).anyTimes();
-    EasyMock.expect( request.getServletContext() ).andReturn( context ).anyTimes();
-    EasyMock.expect( context.getAttribute(
-        GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE)).andReturn(gatewayConfig).anyTimes();
-    EasyMock.expect(gatewayConfig.getHeaderNameForRemoteAddress()).andReturn(
-        "Custom-Forwarded-For").anyTimes();
+
     EasyMock.replay( request );
-    EasyMock.replay( context );
-    EasyMock.replay( gatewayConfig );
 
     HttpServletResponse response = EasyMock.createNiceMock( HttpServletResponse.class );
     EasyMock.replay( response );
@@ -136,21 +126,12 @@ public class AuditLoggingTest {
     EasyMock.replay( config );
 
     HttpServletRequest request = EasyMock.createNiceMock( HttpServletRequest.class );
-    ServletContext context = EasyMock.createNiceMock( ServletContext.class );
-    GatewayConfig gatewayConfig = EasyMock.createNiceMock( GatewayConfig.class );
     EasyMock.expect( request.getMethod() ).andReturn( METHOD ).anyTimes();
     EasyMock.expect( request.getPathInfo() ).andReturn( PATH ).anyTimes();
     EasyMock.expect( request.getContextPath() ).andReturn( CONTEXT_PATH ).anyTimes();
     EasyMock.expect( request.getRemoteAddr() ).andReturn( ADDRESS ).anyTimes();
     EasyMock.expect( request.getRemoteHost() ).andReturn( HOST ).anyTimes();
-    EasyMock.expect( request.getServletContext() ).andReturn( context ).anyTimes();
-    EasyMock.expect( context.getAttribute(
-        GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE)).andReturn(gatewayConfig).anyTimes();
-    EasyMock.expect(gatewayConfig.getHeaderNameForRemoteAddress()).andReturn(
-        "Custom-Forwarded-For").anyTimes();
     EasyMock.replay( request );
-    EasyMock.replay( context );
-    EasyMock.replay( gatewayConfig );
 
     HttpServletResponse response = EasyMock.createNiceMock( HttpServletResponse.class );
     EasyMock.replay( response );
