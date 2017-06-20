@@ -545,11 +545,6 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
   }
 
   @Override
-  public String getHeaderNameForRemoteAddress() {
-    return "X-Forwarded-For";
-  }
-
-  @Override
   public String getAlgorithm() {
 	return null;
   }
@@ -599,4 +594,8 @@ public class GatewayTestConfig extends Configuration implements GatewayConfig {
     return isTopologyPortMappingEnabled;
   }
 
+  @Override
+  public boolean isGatewayServerHeaderEnabled() {
+    return false;
+  }
 }

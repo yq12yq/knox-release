@@ -231,13 +231,6 @@ public interface GatewayConfig {
   boolean isCookieScopingToPathEnabled();
 
   /**
-   * Configured name of the HTTP Header that is expected
-   * to be set by a proxy in front of the gateway.
-   * @return
-   */
-  String getHeaderNameForRemoteAddress();
-
-  /**
    * Configured Algorithm name to be used by the CryptoService
    * and MasterService implementations
    * @return

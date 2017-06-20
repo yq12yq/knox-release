@@ -38,8 +38,6 @@ public class JWTFederationFilter extends AbstractJWTFilter {
   public static final String TOKEN_VERIFICATION_PEM = "knox.token.verification.pem";
   private static final String KNOX_TOKEN_QUERY_PARAM_NAME = "knox.token.query.param.name";
   private static final String BEARER = "Bearer ";
-  private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
-  private JWTokenAuthority authority = null;
   private String paramName = "knoxtoken";
 
   @Override

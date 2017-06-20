@@ -870,12 +870,6 @@ public class GatewayConfigImpl extends Configuration implements GatewayConfig {
   }
 
   @Override
-  public String getHeaderNameForRemoteAddress() {
-    String value = getVar(REMOTE_IP_HEADER_NAME, "X-Forwarded-For");
-    return value;
-  }
-
-  @Override
   public String getAlgorithm() {
 	return getVar(CRYPTO_ALGORITHM, null);
   }
