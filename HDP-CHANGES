@@ -1,6 +1,7 @@
 Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
 Improvements and Bugs:
+    KNOX-964 - upgrade to httpclient 4.5.3 to avoid licensing issues HTTPCLIENT-1743/LEGAL-240 (Jeffrey E Rodriguez via lmccay)
     KNOX-789 - Apache Atlas REST API support
     KNOX-788 - Apache Atlas Admin UI Support through Knox (Nixon Rodrigues via Sandeep More)
     KNOX-905 - Add httpclient properties to knoxshell log4j properties file
