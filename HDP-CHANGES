@@ -1,6 +1,7 @@
 Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
 Improvements and Bugs:
+    KNOX-789 - Apache Atlas REST API support
     KNOX-788 - Apache Atlas Admin UI Support through Knox (Nixon Rodrigues via Sandeep More)
     KNOX-905 - Add httpclient properties to knoxshell log4j properties file
     KNOX-994 - Introducing a new variable  that enhances the  function, needed for Zeppelin / fix
