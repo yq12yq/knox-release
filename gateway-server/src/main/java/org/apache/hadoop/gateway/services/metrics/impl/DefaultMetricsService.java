@@ -38,7 +38,7 @@ import java.util.ServiceLoader;
 public class DefaultMetricsService implements MetricsService {
   private static GatewayMessages LOG = MessagesFactory.get( GatewayMessages.class );
 
-  private final MetricRegistry metrics = new MetricRegistry();
+  private static final MetricRegistry metrics = new MetricRegistry();
 
   public static final String METRICS_REGISTRY = "metrics-registry";
 
@@ -48,18 +48,23 @@ public class DefaultMetricsService implements MetricsService {
 
   private MetricsContext context;
 
-  public MetricRegistry getMetricRegistry() {
+  private GatewayConfig config;
+
+  public static MetricRegistry getMetricRegistry() {
     return metrics;
   }
 
   @Override
   public void init(GatewayConfig config, Map<String, String> options) throws ServiceLifecycleException {
+    this.config = config;
     context = new DefaultMetricsContext(this);
     context.setProperty(METRICS_REGISTRY, getMetricRegistry());
     instrumentationProviders = new HashMap<>();
     metricsReporters = new ArrayList<>();
-    loadInstrumentationProviders();
-    loadAndInitReporters(config);
+    if (config.isMetricsEnabled()) {
+      loadInstrumentationProviders();
+      loadAndInitReporters(config);
+    }
   }
 
   private void loadInstrumentationProviders() {
@@ -86,12 +91,14 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public void start() throws ServiceLifecycleException {
-    for (MetricsReporter reporter : metricsReporters) {
-      if ( reporter.isEnabled() ) {
-        try {
-          reporter.start(context);
-        } catch ( MetricsReporterException e ) {
-          LOG.failedToStartReporter(reporter.getName(), e);
+    if (config.isMetricsEnabled()) {
+      for (MetricsReporter reporter : metricsReporters) {
+        if ( reporter.isEnabled() ) {
+          try {
+            reporter.start(context);
+          } catch ( MetricsReporterException e ) {
+            LOG.failedToStartReporter(reporter.getName(), e);
+          }
         }
       }
     }
@@ -99,12 +106,14 @@ public class DefaultMetricsService implements MetricsService {
 
   @Override
   public void stop() throws ServiceLifecycleException {
-    for (MetricsReporter reporter : metricsReporters) {
-      if (reporter.isEnabled()) {
-        try {
-          reporter.stop();
-        } catch ( MetricsReporterException e ) {
-          LOG.failedToStopReporter(reporter.getName(), e);
+    if (config.isMetricsEnabled()) {
+      for (MetricsReporter reporter : metricsReporters) {
+        if (reporter.isEnabled()) {
+          try {
+            reporter.stop();
+          } catch ( MetricsReporterException e ) {
+            LOG.failedToStopReporter(reporter.getName(), e);
+          }
         }
       }
     }
