@@ -1,27 +1,54 @@
-Changes only in Hortonworks github and not in the released Knox v0.9.0 and hence not covered by CHANGES.txt.
+Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
-IMPROVEMENTS
- KNOX-711 - Added the ability to scope rewrite rules
- KNOX-910 - Move from SHA-1 to SHA-256 (Jeffrey E Rodriguez via Sandeep More)
+Improvements and Bugs:
+    KNOX-994 - Introducing a new variable  that enhances the  function, needed for Zeppelin / fix
+    KNOX-995 - KnoxSSO Form IDP Issue with Firefox
+    KNOX-949 - WeBHDFS proxy replaces %20 encoded spaces in URL with + encoding
+    Revert "KNOX-754 scope change to just the Location header"
+    Revert "Revert "KNOX-690 fixing the encoding/decoding in the parser and template""
+    Revert "KNOX-690 fixing the encoding/decoding in the parser and template"
+    Revert "KNOX-690 fixing the encoding/decoding in the parser and template"
+    Revert "KNOX-690 quick unit test for toEncodedString method"
+    KNOX-986 - JMX Metric Reporter and OutOfMemory Issues (Zsombor Gegesy via Sandeep More)
+    KNOX-626 - NameNode UI through Knox has various tabs not working
+    KNOX-975 - Add NodeManager Service Definition
+    KNOX-982 - Datanode JMX REST Knox service
+    KNOX-974 - Update HDFS UI services
+    KNOX-973 - Update Yarn UI services
+    KNOX-786 - Spark Thriftserver UI support through Knox (Chandana Mirashi via lmccay)
+    KNOX-981 - Make Topology Instance Available in WebContext for Runtime Access
+    KNOX-947 - SSOCookieProvider to be configurable for signature verification key/PEM
+    KNOX-948 - Refactor AbstractJWTFilter implementations (Colm O hEigeartaigh via lmccay)
+    KNOX-390 - fix of backport merge issue
+    KNOX-938 - JWTProvider to accept Query Param as well as Bearer Token
+    KNOX-920 - Make avatica service use default policies
+    KNOX-977 - Exclude extraneous bundle.map in admin-ui file from release
+    KNOX-776 Rewrite rule handling for Websockets (Jesus Alvarez via Sandeep More)
+    KNOX-751 - Need rewrite function to capture href information from single page host to rewrite output of node hosts (Jeffrey E Rodriguez via lmccay)
+    Revert "KNOX-390 - extended to include proxy provided headers such as X-Forwarded-For"
+    KNOX-390 - extended to include proxy provided headers such as X-Forwarded-For
+    KNOX-932 - Option to remove the server-name from HTTP-header response (Lawrence McCay IV via lmccay)
+    KNOX-928 - Topology Port Mapping Feature
+    KNOX-944 - Make PBE Hashing, Iteration Count and Salt Configurable and Manageable
+    KNOX-390 - Include client IP and HTTP verb in audit log
+    KNOX-923 - Add ClientData to KnoxToken Service to Include in JSON Response
+    KNOX-947 - SSOCookieProvider to be configurable for signature verification key/PEM
+    KNOX-954 - Properly handle parsing errors for JWT tokens
+    KNOX-952 - Add common tests for the two JWT filters (Colm O hEigeartaigh via lmccay)
+    KNOX-948 - Refactor AbstractJWTFilter implementations (Colm O hEigeartaigh via lmccay)
+    BUG-79981 KNOX-910 - Move from SHA-1 to SHA-256 (Jeffrey E Rodriguez via Sandeep More)
+    KNOX-950 - Fix a bug that prevents wss:// protocol from connection to websocket backend.
+    KNOX-936 - On websocket error properly close all the sessions and containers.
+    KNOX-917 - Fix Pig view in Ambari (Gaurav Nagar via Sandeep More)
+    KNOX-911 - Ability to scope cookies to a given Path (Attila Kanto via lmccay)
+    KNOX-913 - Invalid login.jsp redirect for Ranger Admin UI
+    KNOX-909 - Ambari rewrite update for SmartSense
+    KNOX-906 - Log WARN of Removed Impersonation Params
+    KNOX-902 - Fix the hardcoded knoxsso topology name (Attila Kanto via Sandeep More)
+    KNOX-897 - X-Forwarded-Port incorrectly defaults to the one configured for Knox if standard ports (80 and 443) are used (Attila Kanto via Sandeep More)
+    KNOX-904 Reverting back httpclient to 4.5.1 due to bug in 4.5.2
+    KNOX-903 - KnoxShell allows self signed certs to be used without any checks
+    KNOX-841 Changed version number for Solr proxy support
+    KNOX-900 - In the WebsocketMultipleConnectionTest before sending data check whether the socket is active
+    KNOX-890 - Make IdleTimeout Configurable in Knox Gateway Server (make default 5 mins)
 
-BUF FIXES
- KNOX-917 - Fix Pig view in Ambari
- KNOX-705 - Views in Ambari UI don't render when proxied by the AMBARIUI service
- KNOX-705 - Improvement on 404 error messages with ambari views
- KNOX-705 - rules to support view changes in Ambari
- KNOX-712 - submitPig does not allow multiple argument via arg() (Pierre Regazzoni via lmccay)
- KNOX-713 - Knox Shell HDFS.get.Request is Package Private (Chris Snow via lmccay)
- KNOX-714 - Remove Permissive MIT License from NOTICE File
- KNOX-715 - submitJava should allow multiple argument via arg() (Pierre Regazzoni via lmccay)
- KNOX-716 - replayBufferSize is kept in bytes
- KNOX-717 - changed the location header in RANGERUI rewrite to be more specific
- KNOX-721 - added rewrite rules to take care of no slash url
- KNOX-721 - added rewrite rules to take care of no slash url
- KNOX-721 - Loosening up the match criteria as the Location header coming back from Ranger is not always correct
- KNOX-722 - Null Pointer Exception while Knox SSO configured for OKTA/SAML v2
- KNOX-722 - changed KnoxSessionStore to not base64 empty cookie value
- KNOX-722 - Null Pointer Exception while Knox SSO configured for OKTA/SAML v2
- KNOX-723 - qualifying the login page resources with the frontend path
- KNOX-724 - ambari view fixes
- KNOX-725 - defining policy chain for ambari and ranger services
- KNOX-726 - Clean up Skipped Unit Tests
