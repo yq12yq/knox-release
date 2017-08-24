@@ -18,4 +18,3 @@
 
 org.apache.hadoop.gateway.filter.rewrite.impl.FrontendFunctionProcessor
 org.apache.hadoop.gateway.filter.rewrite.impl.html.HtmlImportFunctionProcessor
-org.apache.hadoop.gateway.filter.rewrite.impl.html.HtmlPrefixProcessor
