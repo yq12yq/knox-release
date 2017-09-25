@@ -107,6 +107,7 @@
         <gateway-version>0.12.0.2.6.3.0-SNAPSHOT</gateway-version>
         <gateway-group>org.apache.knox</gateway-group>
         <groovy-version>2.4.6</groovy-version>
+        <zookeeper-version>3.4.10</zookeeper-version>
         <hadoop-version>2.7.3.2.6.3.0-SNAPSHOT</hadoop-version>
         <jetty-version>9.2.15.v20160210</jetty-version>
         <surefire-version>2.16</surefire-version>
@@ -1122,7 +1123,7 @@
             <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
-                <version>3.4.6</version>
+                <version>${zookeeper-version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.curator</groupId>
