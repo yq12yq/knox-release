@@ -24,6 +24,7 @@ import javax.security.auth.Subject;
 
 import org.apache.hadoop.gateway.services.security.token.impl.JWT;
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
+import java.security.interfaces.RSAPublicKey;
 
 public interface JWTokenAuthority {
 
@@ -36,7 +37,10 @@ public interface JWTokenAuthority {
   JWTToken issueToken(Principal p, String audience,
       String algorithm) throws TokenServiceException;
 
-  boolean verifyToken(JWTToken token) throws TokenServiceException;
+  boolean verifyToken(JWT token) throws TokenServiceException;
+
+  boolean verifyToken(JWT token, RSAPublicKey publicKey)
+      throws TokenServiceException;
 
   JWTToken issueToken(Principal p, String audience, String algorithm,
       long expires) throws TokenServiceException;

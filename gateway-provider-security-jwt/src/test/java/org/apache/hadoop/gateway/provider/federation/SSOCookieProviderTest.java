@@ -543,7 +543,13 @@ public class SSOCookieProviderTest  {
      * @see org.apache.hadoop.gateway.services.security.token.JWTokenAuthority#verifyToken(org.apache.hadoop.gateway.services.security.token.impl.JWTToken)
      */
     @Override
-    public boolean verifyToken(JWTToken token) throws TokenServiceException {
+    public boolean verifyToken(JWT token) throws TokenServiceException {
+      return true;
+    }
+
+    @Override
+    public boolean verifyToken(JWT token, RSAPublicKey publicKey)
+      throws TokenServiceException {
       return true;
     }
 

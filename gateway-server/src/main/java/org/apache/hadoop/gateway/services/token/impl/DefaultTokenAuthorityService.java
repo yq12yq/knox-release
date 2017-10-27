@@ -38,6 +38,7 @@ import org.apache.hadoop.gateway.services.security.KeystoreServiceException;
 import org.apache.hadoop.gateway.services.security.token.JWTokenAuthority;
 import org.apache.hadoop.gateway.services.security.token.TokenServiceException;
 import org.apache.hadoop.gateway.services.security.token.impl.JWTToken;
+import org.apache.hadoop.gateway.services.security.token.impl.JWT;
 
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.JWSVerifier;
@@ -159,16 +160,27 @@ public class DefaultTokenAuthorityService implements JWTokenAuthority, Service {
   }
 
   @Override
-  public boolean verifyToken(JWTToken token)
+  public boolean verifyToken(JWT token)
+      throws TokenServiceException {
+    return verifyToken(token, null);
+  }
+
+  @Override
+  public boolean verifyToken(JWT token, RSAPublicKey publicKey)
       throws TokenServiceException {
     boolean rc = false;
     PublicKey key;
     try {
-      key = ks.getSigningKeystore().getCertificate(getSigningKeyAlias()).getPublicKey();
+      if (publicKey == null) {
+        key = ks.getSigningKeystore().getCertificate(getSigningKeyAlias()).getPublicKey();
+      }
+      else {
+        key = publicKey;
+      }
       JWSVerifier verifier = new RSASSAVerifier((RSAPublicKey) key);
       // TODO: interrogate the token for issuer claim in order to determine the public key to use for verification
       // consider jwk for specifying the key too
-      rc = token.verify(verifier);
+      rc = ((JWTToken)token).verify(verifier);
     } catch (KeyStoreException e) {
       throw new TokenServiceException("Cannot verify token.", e);
     } catch (KeystoreServiceException e) {
