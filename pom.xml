@@ -111,7 +111,8 @@
         <gateway-version>1.0.0-SNAPSHOT</gateway-version>
         <gateway-group>org.apache.knox</gateway-group>
         <groovy-version>2.4.6</groovy-version>
-        <hadoop-version>2.7.3</hadoop-version>
+        <!--<hadoop-version>2.7.3</hadoop-version>-->
+        <hadoop-version>3.0.0-beta1</hadoop-version>
         <jetty-version>9.2.15.v20160210</jetty-version>
         <surefire-version>2.16</surefire-version>
         <failsafe-version>2.19.1</failsafe-version>
@@ -119,6 +120,10 @@
         <javax-websocket-version>1.1</javax-websocket-version>
         <metrics-version>3.1.2</metrics-version>
         <shiro.version>1.2.6</shiro.version>
+        <kerb-simplekdc-version>1.0.0-RC2</kerb-simplekdc-version>
+        <commons-beanutils-version>1.9.3</commons-beanutils-version>
+        <!--<jackson2.version>2.7.8</jackson2.version>-->
+        <jackson2.version>2.2.2</jackson2.version>
     </properties>
 
     <licenses>
@@ -1005,13 +1010,37 @@
                         <groupId>xmlenc</groupId>
                         <artifactId>xmlenc</artifactId>
                     </exclusion>
+
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>jersey-servlet</artifactId>
+                    </exclusion>
+
+                    <exclusion>
+                        <groupId>org.apache.kerby</groupId>
+                        <artifactId>kerb-simplekdc</artifactId>
+                    </exclusion>
+
+                    <!--
+                    <exclusion>
+                        <groupId>com.fasterxml.jackson.core</groupId>
+                        <artifactId>jackson-databind</artifactId>
+                    </exclusion>
+                    -->
+
                 </exclusions>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.kerby</groupId>
+                <artifactId>kerb-simplekdc</artifactId>
+                <version>${kerb-simplekdc-version}</version>
             </dependency>
 
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.2.2</version>
+                <version>${jackson2.version}</version>
             </dependency>
 
             <dependency>
@@ -1047,7 +1076,7 @@
             <dependency>
                 <groupId>commons-beanutils</groupId>
                 <artifactId>commons-beanutils</artifactId>
-                <version>1.9.2</version>
+                <version>${commons-beanutils-version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
