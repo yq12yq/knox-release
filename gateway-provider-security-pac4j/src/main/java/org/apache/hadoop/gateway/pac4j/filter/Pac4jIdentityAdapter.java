@@ -56,8 +56,11 @@ public class Pac4jIdentityAdapter implements Filter {
 
   private String testIdentifier;
 
+  private String idAttribute;
+
   @Override
   public void init( FilterConfig filterConfig ) throws ServletException {
+    idAttribute = filterConfig.getInitParameter(PAC4J_ID_ATTRIBUTE);
   }
 
   public void destroy() {
@@ -76,7 +79,17 @@ public class Pac4jIdentityAdapter implements Filter {
       CommonProfile profile = optional.get();
       logger.debug("User authenticated as: {}", profile);
       manager.remove(true);
-      final String id = profile.getId();
+      String id = null;
+      if (idAttribute == null) {
+        id = profile.getAttribute(idAttribute).toString();
+        if (id == null) {
+          logger.error("Invalid attribute_id: {} configured to be used as principal"
+              + " falling back to default id", idAttribute);
+        }
+      }
+      if (id == null) {
+        id = profile.getId();
+      }
       testIdentifier = id;
       PrimaryPrincipal pp = new PrimaryPrincipal(id);
       Subject subject = new Subject();
