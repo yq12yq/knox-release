@@ -159,7 +159,8 @@ public class ZooKeeperConfigurationMonitorTest {
 
         RemoteConfigurationRegistryClientService clientService = (new ZooKeeperClientServiceProvider()).newInstance();
         clientService.setAliasService(aliasService);
-        clientService.init(gc, Collections.emptyMap());
+        Map<String, String> mtMap = Collections.emptyMap();
+        clientService.init(gc, mtMap);
         clientService.start();
 
         DefaultRemoteConfigurationMonitor cm = new DefaultRemoteConfigurationMonitor(gc, clientService);
