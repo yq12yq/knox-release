@@ -40,6 +40,12 @@ export class ResourceService {
     changedResourceSource = new Subject<string>();
     changedResource$ = this.changedResourceSource.asObservable();
 
+    changedProviderConfigurationSource = new Subject<Array<ProviderConfig>>();
+    changedProviderConfiguration$ = this.changedProviderConfigurationSource.asObservable();
+
+    changedDescriptorSource = new Subject<Descriptor>();
+    changedDescriptor = this.changedDescriptorSource.asObservable();
+
     constructor(private http: HttpClient) { }
 
     getResources(resType: string): Promise<Resource[]> {
@@ -58,6 +64,7 @@ export class ResourceService {
 
     getProviderConfigResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
+        //this.logHeaders(headers);
         return this.http.get(this.providersUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['items'] as Resource[])
@@ -66,6 +73,7 @@ export class ResourceService {
 
     getDescriptorResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
+        //this.logHeaders(headers);
         return this.http.get(this.descriptorsUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['items'] as Resource[])
@@ -74,6 +82,7 @@ export class ResourceService {
 
     getTopologyResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
+        //this.logHeaders(headers);
         return this.http.get(this.topologiesUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['topologies'].topology as Resource[])
@@ -81,48 +90,48 @@ export class ResourceService {
     }
 
     getResource(resType: string, res : Resource): Promise<string> {
-        if (res) {
-            let headers = new HttpHeaders();
-            headers = (resType === 'Topologies') ? this.addXmlHeaders(headers) : this.addHeaders(headers, res.name);
+        let headers = new HttpHeaders();
+        headers = (resType === 'Topologies') ? this.addXmlHeaders(headers) : this.addHeaders(headers, res.name);
+        //this.logHeaders(headers);
 
-            return this.http.get(res.href, {headers: headers, responseType: 'text'})
-                .toPromise()
-                .then(response => {
-                    console.debug('ResourceService --> Loading resource ' + res.name + ' :\n' + response);
-                    return response;
-                })
-                .catch((err: HttpErrorResponse) => {
-                    console.debug('ResourceService --> getResource() ' + res.name + '\n  error: ' + err.message);
-                    return this.handleError(err);
-                });
-        } else {
-            return Promise.resolve(null);
-        }
+        return this.http.get(res.href, {headers: headers, responseType: 'text'})
+            .toPromise()
+            .then(response => {
+                console.debug('ResourceService --> Loading resource ' + res.name + ' :\n' + response);
+                return response;
+            })
+            .catch(this.handleError);
     }
 
     saveResource(resource: Resource, content: string): Promise<string> {
         let headers = this.addHeaders(new HttpHeaders(), resource.name);
+        headers = this.addCsrfHeaders(headers);
+        //this.logHeaders(headers);
 
         console.debug('ResourceService --> Persisting ' + resource.name + '\n' + content);
 
-        return this.http.put(url, xml, {headers: headers})
+        return this.http.put(resource.href, content, {headers: headers})
                         .toPromise()
-                        .then(() => xml)
+                        .then(() => content)
                         .catch(this.handleError);
     }
 
     createResource(resType: string, resource: Resource, content : string): Promise<string> {
         let headers = this.addHeaders(new HttpHeaders(), resource.name);
+        headers = this.addCsrfHeaders(headers);
+        //this.logHeaders(headers);
 
-        let url = ((resType === 'Descriptors') ? this.descriptorsUrl : this.providersUrl) + '/' + resource.name;
+        let url = ((resType === 'Descriptors') ? this.descriptorsUrl : this.providersUrl) + '/' + name;
         return this.http.put(url, content, {headers: headers})
                         .toPromise()
-                        .then(() => xml)
+                        .then(() => content)
                         .catch(this.handleError);
     }
 
     deleteResource(href: string): Promise<string> {
         let headers = this.addJsonHeaders(new HttpHeaders());
+        headers = this.addCsrfHeaders(headers);
+        //this.logHeaders(headers);
 
         return this.http.delete(href, { headers: headers } )
                         .toPromise()
@@ -256,10 +265,17 @@ export class ResourceService {
         this.selectedResourceSource.next(value);
     }
 
-    changedResource(value: string) {
+    resourceChanged(value: string) {
         this.changedResourceSource.next(value);
     }
 
+    providerConfigurationChanged(pc: Array<ProviderConfig>) {
+        this.changedProviderConfigurationSource.next(pc);
+    }
+
+    descriptorChanged(desc: Descriptor) {
+        this.changedDescriptorSource.next(desc);
+    }
 
     public getResourceDisplayName(res: Resource): string {
         if (res.name) {
@@ -276,7 +292,7 @@ export class ResourceService {
     }
 
     private logHeaders(headers: HttpHeaders) {
-        let debugMsg = 'ResourceService --> Request header count: ' + headers.keys().length + '\n';
+        let debugMsg = 'ResourceService --> Request headers:\n';
         headers.keys().forEach(key => {
             debugMsg += '  ' + key + '=' + headers.get(key) + '\n';
         });
