@@ -52,7 +52,6 @@ export class ResourceDetailComponent implements OnInit {
   changedProviders: Array<ProviderConfig>;
 
   descriptor: Descriptor;
-  changedDescriptor: Descriptor;
 
   @ViewChild('choosePC')
   chooseProviderConfigModal: ProviderConfigSelectorComponent;
@@ -80,7 +79,7 @@ export class ResourceDetailComponent implements OnInit {
       this.resource = res;
       this.providers = [];
       this.changedProviders = null;
-      this.descriptor = null;
+      this.descriptor = ResourceDetailComponent.emptyDescriptor;
       if (res) {
         this.resourceService.getResource(this.resourceType, res)
                             .then(content => this.setResourceContent(res, content))
@@ -266,10 +265,16 @@ export class ResourceDetailComponent implements OnInit {
         break;
       }
     }
-    this.resourceService.saveResource(this.resource, content);
 
-    // Refresh the presentation
-    this.resourceService.selectedResource(this.resource);
+    // Save the updated content
+    this.resourceService.saveResource(this.resource, content)
+      .then(() => {
+          // Refresh the presentation
+          this.resourceService.selectedResource(this.resource);
+      })
+      .catch(err => {
+          console.error('Error persisting ' + this.resource.name + ' : ' + err);
+      });
   }
 
 
@@ -372,6 +377,10 @@ export class ResourceDetailComponent implements OnInit {
     this.changedProviders = this.providers;
   }
 
+  onProviderEnabled(provider: ProviderConfig) {
+      provider.enabled = this.isProviderEnabled(provider) ? 'false' : 'true';
+      this.changedProviders = this.providers;
+  }
 
   onRemoveProviderParam(pc: ProviderConfig, paramName: string) {
     //console.debug('ResourceDetailComponent --> onRemoveProviderParam() --> ' + pc.name + ' --> ' + paramName);
@@ -435,166 +444,16 @@ export class ResourceDetailComponent implements OnInit {
     }
   }
 
-  persistChanges() {
-    switch(this.resourceType) {
-        case 'Provider Configurations' : {
-            this.persistProviderConfiguration();
-            break;
-        }
-        case 'Descriptors': {
-            this.persistDescriptor();
-        }
-    }
+  onUpdateDescriptorProperty(desc: Descriptor, propertyName: string, value: string) {
+      desc[propertyName] = value;
+      desc.setDirty();
   }
 
-  persistProviderConfiguration() {
-    let content;
-    let ext = this.resource.name.split('.').pop();
-    switch(ext) {
-      case 'json': {
-        content = this.resourceService.serializeProviderConfiguration(this.providers, 'json');
-        break;
-      }
-      case 'yaml':
-      case 'yml': {
-        content = this.resourceService.serializeProviderConfiguration(this.providers, 'yaml');
-        break;
-      }
-      case 'xml': {
-        // We're not going to bother serializing XML. Rather, delete the original XML resource, and replace it
-        // with JSON
-        console.debug('Replacing XML provider configuration ' + this.resource.name + ' with JSON...');
-
-        // Generate the JSON representation of the updated provider configuration
-        content = this.resourceService.serializeProviderConfiguration(this.providers, 'json');
-
-        let replacementResource = new Resource();
-        replacementResource.name = this.resource.name.slice(0, -4) + '.json';
-        replacementResource.href = this.resource.href;
-
-        // Delete the XML resource
-        this.resourceService.deleteResource(this.resource.href)
-          .then(() => {
-          // Save the updated content
-          this.resourceService.saveResource(replacementResource, content).then(() => {
-            // Update the list of provider configuration to ensure that the XML one is replaced with the JSON one
-            this.resourceTypesService.selectResourceType(this.resourceType);
-            // Update the detail view
-            this.resourceService.selectedResource(replacementResource);
-          })
-          .catch(err => {
-              console.error('Error persisting ' + replacementResource.name + ' : ' + err);
-          });
-        });
-        break;
-      }
-    }
-  }
-
-
-  persistDescriptor() {
-    let content;
-    let ext = this.resource.name.split('.').pop();
-    switch(ext) {
-      case 'json': {
-        content = this.resourceService.serializeDescriptor(this.descriptor, 'json');
-        break;
-      }
-      case 'yaml':
-      case 'yml': {
-        content = this.resourceService.serializeDescriptor(this.descriptor, 'yaml');
-        break;
-      }
-    }
-
-    // Save the updated content
-    this.resourceService.saveResource(this.resource, content)
-      .then(() => {
-          // Refresh the presentation
-          this.resourceService.selectedResource(this.resource);
-      })
-      .catch(err => {
-          console.error('Error persisting ' + this.resource.name + ' : ' + err);
-      });
-  }
-
-
-  discardChanges() {
-    this.resourceService.selectedResource(this.resource);
-  }
-
-
-  deleteResource() {
-    let resourceName = this.resource.name;
-    this.resourceService.deleteResource(this.resource.href)
-                        .then(() => {
-                            console.debug('Deleted ' + resourceName);
-                            // This refreshes the list of resources
-                            this.resourceTypesService.selectResourceType(this.resourceType);
-                        })
-                        .catch((err: HttpErrorResponse) => {
-                            if (err.status === 304) { // Not Modified
-                                console.log(resourceName + ' cannot be deleted while there are descriptors actively referencing it.');
-                                this.referencedProviderConfigError = true;
-                            } else {
-                                console.error('Error deleting ' + resourceName + ' : ' + err.message)
-                            }
-                        });
-  }
-
-
-  onRemoveProvider(name: string) {
-    //console.debug('ResourceDetailComponent --> onRemoveProvider() --> ' + name);
-    for(let i = 0; i < this.providers.length; i++) {
-      if(this.providers[i].name === name) {
-        this.providers.splice(i, 1);
-        break;
-      }
-    }
-    this.changedProviders = this.providers;
-  }
-
-  onProviderEnabled(provider: ProviderConfig) {
-      provider.enabled = this.isProviderEnabled(provider) ? 'false' : 'true';
-      this.changedProviders = this.providers;
-  }
-
-  onRemoveProviderParam(pc: ProviderConfig, paramName: string) {
-    //console.debug('ResourceDetailComponent --> onRemoveProviderParam() --> ' + pc.name + ' --> ' + paramName);
-    if(pc.params.hasOwnProperty(paramName)) {
-        delete pc.params[paramName];
-    }
-    this.changedProviders = this.providers;
-  }
-
-
-  onRemoveDescriptorService(serviceName: string) {
-    //console.debug('ResourceDetailComponent --> onRemoveDescriptorService() --> ' + serviceName);
-    for(let i = 0; i < this.descriptor.services.length; i++) {
-      if(this.descriptor.services[i].name === serviceName) {
-        this.descriptor.services.splice(i, 1);
-        this.descriptor.setDirty();
-        break;
-      }
-    }
-  }
-
-
-  onRemoveDescriptorServiceParam(serviceName: string, paramName: string) {
-    //console.debug('ResourceDetailComponent --> onRemoveDescriptorServiceParam() --> ' + serviceName + ' : ' + paramName);
-    let done: boolean = false;
-    for(let i = 0; i < this.descriptor.services.length; i++) {
-      if(this.descriptor.services[i].name === serviceName) {
-        let service = this.descriptor.services[i];
-        if(service.params.hasOwnProperty(paramName)) {
-          delete service.params[paramName];
-          this.descriptor.setDirty();
-          done = true;
-          break;
-        }
-      }
-      if (done) { // Stop checking services if it has already been handled
-        break;
+  getParamKeys(provider: ProviderConfig): string[] {
+    let result = [];
+    for(let key in provider.params){
+      if (provider.params.hasOwnProperty(key)){
+          result.push(key);
       }
     }
     return result;
@@ -777,6 +636,21 @@ export class ResourceDetailComponent implements OnInit {
       return index;
   }
 
+
+  isProviderEnabled(pc: ProviderConfig): boolean {
+      let result: boolean = false;
+
+      if (pc) {
+          if (typeof(pc.enabled) === 'string') {
+              let lowered = pc.enabled.toLowerCase().trim();
+              result = (lowered === 'true');
+          } else if (typeof(pc.enabled) === 'boolean') {
+              result = pc.enabled;
+          }
+      }
+
+      return result;
+  }
 
   hasSelectedResource(): boolean {
     return Boolean(this.resource) && Boolean(this.resource.name);
