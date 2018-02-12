@@ -56,6 +56,9 @@ export class ResourceDetailComponent implements OnInit {
   @ViewChild('choosePC')
   chooseProviderConfigModal: ProviderConfigSelectorComponent;
 
+  referencedProviderConfigError: boolean = false;
+
+
   constructor(private resourceService: ResourceService, private resourceTypesService: ResourceTypesService) {
   }
 
@@ -345,6 +348,7 @@ export class ResourceDetailComponent implements OnInit {
                         .catch((err: HttpErrorResponse) => {
                             if (err.status === 304) { // Not Modified
                                 console.log(resourceName + ' cannot be deleted while there are descriptors actively referencing it.');
+                                this.referencedProviderConfigError = true;
                             } else {
                                 console.error('Error deleting ' + resourceName + ' : ' + err.message)
                             }
@@ -487,10 +491,6 @@ export class ResourceDetailComponent implements OnInit {
       return this[provider.name+paramName+'EditMode'];
   }
 
-  getInputElementValue(id: string): string {
-      return (<HTMLInputElement>document.getElementById(id)).value;
-  }
-
   setServiceParamEditFlag(service: Service, paramName: string, value: boolean) {
       this[service.name + paramName + 'EditMode'] = value;
       this.descriptor.setDirty();
@@ -509,193 +509,11 @@ export class ResourceDetailComponent implements OnInit {
       return this[service.name + index + 'EditMode'];
   }
 
-  onUpdateServiceParam(service: Service, paramName: string, value: string) {
-      service.params[paramName] = value;
-      this.descriptor.setDirty();
-  }
-
-  onUpdateServiceURL(service: Service, urlIndex: number, value: string) {
-      service.urls[urlIndex] = value;
-      this.descriptor.setDirty();
-  }
-
-  onUpdateDescriptorProperty(propertyName: string, value: string) {
-      //console.log('Setting descriptor ' + this.resource.name + ' property ' + propertyName + ' to value ' + value);
-      this.descriptor[propertyName] = value;
-      this.descriptor.setDirty();
-  }
-
-  onUpdateProviderConfigParam(provider: ProviderConfig, propertyName: string, value: string) {
-    provider.params[propertyName] = value;
-    this.changedProviders = this.providers;
-  }
-
-  getParamKeys(provider: ProviderConfig): string[] {
-    let result = [];
-    for(let key in provider.params){
-      if (provider.params.hasOwnProperty(key)){
-          result.push(key);
-      }
-    }
-    return result;
-  }
-
-
-  getServiceParamKeys(service: Service): string[] {
-    let result = [];
-    for(let key in service.params){
-      if (service.params.hasOwnProperty(key)){
-        result.push(key);
-      }
-    }
-  }
-
-  toggleShowProvider(provider: ProviderConfig) {
-      this[this.resource.name + provider.name + 'Show'] = !this.isShowProvider(provider);
-  }
-
-  isShowProvider(provider: ProviderConfig): boolean {
-      return this[this.resource.name + provider.name + 'Show'];
-  }
-
-  toggleShowProviderParams(provider: ProviderConfig) {
-      this[this.resource.name + provider.name + 'ShowParams'] = !this.isShowProviderParams(provider);
-  }
-
-  showProviderParams(provider: ProviderConfig) {
-    this[this.resource.name + provider.name + 'ShowParams'] = true;
-  }
-
-  isShowProviderParams(provider: ProviderConfig): boolean {
-      return this[this.resource.name + provider.name + 'ShowParams'];
-  }
-
-  toggleShowServices() {
-      this[this.resource.name + 'ShowServices'] = !this.isShowServices();
-  }
-
-  showServices() {
-    this[this.resource.name + 'ShowServices'] = true;
-  }
-
-  isShowServices(): boolean {
-      return this[this.resource.name + 'ShowServices'];
-  }
-
-  toggleShowServiceDiscovery() {
-      this[this.resource.name + 'ShowDiscovery'] = !this.isShowServiceDiscovery();
-  }
-
-  isShowServiceDiscovery(): boolean {
-      return this[this.resource.name + 'ShowDiscovery'];
-  }
-
-  toggleShowServiceParams(service: Service) {
-      this[this.resource.name + service.name + 'ShowParams'] = !this.isShowServiceParams(service);
-  }
-
-  showServiceParams(service: Service) {
-      this[this.resource.name + service.name + 'ShowParams'] = true;
-  }
-
-  isShowServiceParams(service: Service): boolean {
-      return this[this.resource.name + service.name + 'ShowParams'];
-  }
-
-  toggleShowServiceURLs(service: Service) {
-      this[this.resource.name + service.name + 'ShowURLs'] = !this.isShowServiceURLs(service);
-  }
-
-  showServiceURLs(service: Service) {
-      this[this.resource.name + service.name + 'ShowURLs'] = true;
-  }
-
-  isShowServiceURLs(service: Service): boolean {
-      return this[this.resource.name + service.name + 'ShowURLs'];
-  }
-
-  setProviderParamEditFlag(provider: ProviderConfig, paramName: string, value: boolean) {
-      this[provider.name+paramName+'EditMode'] = value;
-      this.changedProviders = this.providers;
-  }
-
-  getProviderParamEditFlag(provider: ProviderConfig, paramName: string): boolean {
-      return this[provider.name+paramName+'EditMode'];
-  }
-
-  setServiceVersionEditFlag(service: Service, value: boolean) {
-      this[service.name + 'EditMode'] = value;
-      this.descriptor.setDirty();
-  }
-
-  getServiceVersionEditFlag(service: Service): boolean {
-      return this[service.name + 'EditMode'];
-  }
-
-  setServiceParamEditFlag(service: Service, paramName: string, value: boolean) {
-      this[service.name + paramName + 'EditMode'] = value;
-      this.descriptor.setDirty();
-  }
-
-  getServiceParamEditFlag(service: Service, paramName: string): boolean {
-      return this[service.name + paramName + 'EditMode'];
-  }
-
-  setServiceURLEditFlag(service: Service, index: number, value: boolean) {
-      this[service.name + index + 'EditMode'] = value;
-      this.descriptor.setDirty();
-  }
-
-  getServiceURLEditFlag(service: Service, index: number): boolean {
-      return this[service.name + index + 'EditMode'];
-  }
-
-  isAddingServiceParam(service: Service): boolean {
-      return this['addParam' + service.name];
-  }
-
-  setAddingServiceParam(service: Service, value: boolean) {
-      this['addParam' + service.name] = value;
-  }
-
-  isAddingServiceURL(service: Service): boolean {
-    return this['addURL' + service.name];
-  }
-
-  setAddingServiceURL(service: Service, value: boolean) {
-    this['addURL' + service.name] = value;
-  }
-
-  isAddingProviderParam(provider: ProviderConfig): boolean {
-    return this['addParam' + provider.name];
-  }
-
-  setAddingProviderParam(provider: ProviderConfig, value: boolean) {
-    this['addParam' + provider.name] = value;
-  }
-
-  addProvider(name: string, role: string) {
-      let p = new ProviderConfig();
-      p.name = name;
-      p.role = role;
-      this.providers.push(p);
-      this.changedProviders = this.providers;
-  }
-
-  addProviderParam(provider: ProviderConfig, name: string, value: string) {
-      if (!provider.params) {
-          provider.params = new Map<string, string>();
-      }
-      provider.params[name] = value;
-      this.changedProviders = this.providers;
-  }
 
   getProviderParamNames(provider: ProviderConfig): string[] {
-      if (!provider.params) {
-          provider.params = new Map<string, string>();
-      }
-      return Object.keys(provider.params);
+      return Object.getOwnPropertyNames(provider.params);
   }
+
 
   isProviderEnabled(pc: ProviderConfig): boolean {
       let result: boolean = false;
@@ -715,22 +533,6 @@ export class ResourceDetailComponent implements OnInit {
   // This method is required to maintain focus on descriptor service URLs when they're being edited.
   trackByServiceURLIndex(index: any, item: any) {
       return index;
-  }
-
-
-  isProviderEnabled(pc: ProviderConfig): boolean {
-      let result: boolean = false;
-
-      if (pc) {
-          if (typeof(pc.enabled) === 'string') {
-              let lowered = pc.enabled.toLowerCase().trim();
-              result = (lowered === 'true');
-          } else if (typeof(pc.enabled) === 'boolean') {
-              result = pc.enabled;
-          }
-      }
-
-      return result;
   }
 
   hasSelectedResource(): boolean {
