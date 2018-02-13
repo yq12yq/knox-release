@@ -109,6 +109,7 @@
         <groovy-version>2.4.6</groovy-version>
         <zookeeper-version>3.4.6.2.6.5.0-SNAPSHOT</zookeeper-version>
         <hadoop-version>2.7.3.2.6.5.0-SNAPSHOT</hadoop-version>
+        <jackson.version>2.8.10</jackson.version>
         <jetty-version>9.2.15.v20160210</jetty-version>
         <surefire-version>2.16</surefire-version>
         <failsafe-version>2.19.1</failsafe-version>
@@ -975,7 +976,7 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
-                <version>2.2.2</version>
+                <version>${jackson.version}</version>
             </dependency>
 
             <dependency>
