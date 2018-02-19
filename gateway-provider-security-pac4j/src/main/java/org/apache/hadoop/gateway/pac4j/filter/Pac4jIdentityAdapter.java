@@ -23,8 +23,8 @@ import org.apache.hadoop.gateway.filter.AbstractGatewayFilter;
 import org.apache.hadoop.gateway.security.PrimaryPrincipal;
 import org.pac4j.core.config.ConfigSingleton;
 import org.pac4j.core.context.J2EContext;
+import org.pac4j.core.profile.CommonProfile;
 import org.pac4j.core.profile.ProfileManager;
-import org.pac4j.core.profile.UserProfile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.util.Optional;
 
 /**
  * <p>This filter retrieves the authenticated user saved by the pac4j provider and injects it into the J2E HTTP request.</p>
@@ -45,6 +46,8 @@ public class Pac4jIdentityAdapter implements Filter {
 
   private static final Logger logger = LoggerFactory.getLogger(Pac4jIdentityAdapter.class);
 
+  public static final String PAC4J_ID_ATTRIBUTE = "pac4j.id_attribute";
+
   private static AuditService auditService = AuditServiceFactory.getAuditService();
   private static Auditor auditor = auditService.getAuditor(
       AuditConstants.DEFAULT_AUDITOR_NAME, AuditConstants.KNOX_SERVICE_NAME,
@@ -52,8 +55,11 @@ public class Pac4jIdentityAdapter implements Filter {
 
   private String testIdentifier;
 
+  private String idAttribute;
+
   @Override
   public void init( FilterConfig filterConfig ) throws ServletException {
+    idAttribute = filterConfig.getInitParameter(PAC4J_ID_ATTRIBUTE);
   }
 
   public void destroy() {
@@ -65,22 +71,39 @@ public class Pac4jIdentityAdapter implements Filter {
     final HttpServletRequest request = (HttpServletRequest) servletRequest;
     final HttpServletResponse response = (HttpServletResponse) servletResponse;
     final J2EContext context = new J2EContext(request, response, ConfigSingleton.getConfig().getSessionStore());
-    final ProfileManager manager = new ProfileManager(context);
-    final UserProfile profile = manager.get(true);
-    logger.debug("User authenticated as: {}", profile);
-    manager.remove(true);
-    final String id = profile.getId();
-    testIdentifier = id;
-    PrimaryPrincipal pp = new PrimaryPrincipal(id);
-    Subject subject = new Subject();
-    subject.getPrincipals().add(pp);
-    auditService.getContext().setUsername(id);
-    String sourceUri = (String)request.getAttribute( AbstractGatewayFilter.SOURCE_REQUEST_CONTEXT_URL_ATTRIBUTE_NAME );
-    auditor.audit(Action.AUTHENTICATION, sourceUri, ResourceType.URI, ActionOutcome.SUCCESS);
     
-    doAs(request, response, chain, subject);
+    final ProfileManager<CommonProfile> manager = new ProfileManager<CommonProfile>(context);
+    final Optional<CommonProfile> optional = manager.get(true);
+    if (optional.isPresent()) {
+      CommonProfile profile = optional.get();
+      logger.debug("User authenticated as: {}", profile);
+      manager.remove(true);
+      String id = null;
+      if (idAttribute != null) {
+        Object attribute = profile.getAttribute(idAttribute);
+        if (attribute != null) {
+          id = attribute.toString();
+        }
+        if (id == null) {
+          logger.error("Invalid attribute_id: {} configured to be used as principal"
+              + " falling back to default id", idAttribute);
+        }
+      }
+      if (id == null) {
+        id = profile.getId();
+      }
+      testIdentifier = id;
+      PrimaryPrincipal pp = new PrimaryPrincipal(id);
+      Subject subject = new Subject();
+      subject.getPrincipals().add(pp);
+      auditService.getContext().setUsername(id);
+      String sourceUri = (String)request.getAttribute( AbstractGatewayFilter.SOURCE_REQUEST_CONTEXT_URL_ATTRIBUTE_NAME );
+      auditor.audit(Action.AUTHENTICATION, sourceUri, ResourceType.URI, ActionOutcome.SUCCESS);
+
+      doAs(request, response, chain, subject);
+    }
   }
-  
+
   private void doAs(final ServletRequest request,
       final ServletResponse response, final FilterChain chain, Subject subject)
       throws IOException, ServletException {
