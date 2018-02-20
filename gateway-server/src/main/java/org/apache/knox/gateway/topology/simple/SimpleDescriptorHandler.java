@@ -104,6 +104,7 @@ public class SimpleDescriptorHandler {
     public static Map<String, File> handle(SimpleDescriptor desc, File srcDirectory, File destDirectory, Service...gatewayServices) {
 
         List<String>                     validServiceNames = new ArrayList<>();
+        Map<String, String>              serviceVersions   = new HashMap<>();
         Map<String, Map<String, String>> serviceParams     = new HashMap<>();
         Map<String, List<String>>        serviceURLs       = new HashMap<>();
 
@@ -112,6 +113,11 @@ public class SimpleDescriptorHandler {
         if (cluster != null) {
             for (SimpleDescriptor.Service descService : desc.getServices()) {
                 String serviceName = descService.getName();
+
+                String serviceVer = descService.getVersion();
+                if (serviceVer != null) {
+                    serviceVersions.put(serviceName, serviceVer);
+                }
 
                 List<String> descServiceURLs = descService.getURLs();
                 if (descServiceURLs == null || descServiceURLs.isEmpty()) {
@@ -161,7 +167,7 @@ public class SimpleDescriptorHandler {
         }
 
         // Generate the topology file
-        return generateTopology(desc, srcDirectory, destDirectory, cluster, validServiceNames, serviceURLs, serviceParams);
+        return generateTopology(desc, srcDirectory, destDirectory, cluster, validServiceNames, serviceVersions, serviceURLs, serviceParams);
     }
 
 
@@ -317,6 +323,7 @@ public class SimpleDescriptorHandler {
      * @param destDirectory     The destination directory for the generated topology file.
      * @param cluster           The discovery details for the referenced cluster.
      * @param validServiceNames The validated service names.
+     * @param serviceVersions   The versions of the services; optional attribute.
      * @param serviceURLs       The URLs associated with the valid service names.
      * @param serviceParams     The params associated with the valid service names.
      *
@@ -327,6 +334,7 @@ public class SimpleDescriptorHandler {
                                                       final File destDirectory,
                                                       final ServiceDiscovery.Cluster cluster,
                                                       final List<String> validServiceNames,
+                                                      final Map<String, String> serviceVersions,
                                                       final Map<String, List<String>> serviceURLs,
                                                       final Map<String, Map<String, String>> serviceParams) {
         Map<String, File> result = new HashMap<>();
@@ -419,6 +427,10 @@ public class SimpleDescriptorHandler {
                 sw.write("\n");
                 sw.write("    <service>\n");
                 sw.write("        <role>" + serviceName + "</role>\n");
+
+                if (serviceVersions.containsKey(serviceName)) {
+                    sw.write("        <version>" + serviceVersions.get(serviceName) + "</version>\n");
+                }
 
                 // If the service is configured for ZooKeeper-based HA
                 ServiceDiscovery.Cluster.ZooKeeperConfig zkConf = haServiceParams.get(serviceName);
