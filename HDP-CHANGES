@@ -56,3 +56,4 @@ Improvements and Bugs:
     KNOX-900 - In the WebsocketMultipleConnectionTest before sending data check whether the socket is active
     KNOX-890 - Make IdleTimeout Configurable in Knox Gateway Server (make default 5 mins)
 
+ BUG-109861 - - KNOX-1199 - Knox to Encode Illegal Double Quotes from Broken Tez View API - fix missing ASL
