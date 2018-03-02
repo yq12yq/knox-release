@@ -1,6 +1,7 @@
 Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
 Improvements and Bugs:
+    KNOX-1199 - Ambari View API for Tez View needs Double Quotes Encoded on Dispatch
     KNOX-995 - KnoxSSO Form IDP Issue with Firefox
     KNOX-949 - WeBHDFS proxy replaces %20 encoded spaces in URL with + encoding
     Revert "KNOX-754 scope change to just the Location header"
