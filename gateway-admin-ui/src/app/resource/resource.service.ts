@@ -19,6 +19,8 @@ import { HttpHeaders, HttpClient} from '@angular/common/http';
 import 'rxjs/add/operator/toPromise';
 import { Subject } from 'rxjs/Subject';
 import { Resource } from './resource';
+import {ProviderConfig} from "../resource-detail/provider-config";
+import {Descriptor} from "../resource-detail/descriptor";
 
 
 @Injectable()
@@ -111,8 +113,8 @@ export class ResourceService {
         headers = this.addCsrfHeaders(headers);
         this.logHeaders(headers);
 
-        let url = this.topologiesUrl + "/" + name;
-        return this.http.put(url, xml, {headers: headers})
+        let url = ((resType === 'Descriptors') ? this.descriptorsUrl : this.providersUrl) + '/' + resource.name;
+        return this.http.put(url, content, {headers: headers})
                         .toPromise()
                         .then(() => xml)
                         .catch(this.handleError);
@@ -128,6 +130,83 @@ export class ResourceService {
                         .then(response => response)
                         .catch(this.handleError);
     }
+
+
+    serializeDescriptor(desc: Descriptor, format: string): string {
+        let serialized: string;
+
+        let tmp = {};
+        if (desc.discoveryAddress) {
+            tmp['discovery-address'] = desc.discoveryAddress;
+        }
+        if (desc.discoveryUser) {
+            tmp['discovery-user'] = desc.discoveryUser;
+        }
+        if (desc.discoveryPassAlias) {
+            tmp['discovery-pwd-alias'] = desc.discoveryPassAlias;
+        }
+        if (desc.discoveryCluster) {
+            tmp['cluster'] = desc.discoveryCluster;
+        }
+        tmp['provider-config-ref'] = desc.providerConfig;
+        tmp['services'] = desc.services;
+
+        switch(format) {
+            case 'json': {
+                serialized =
+                    JSON.stringify(tmp,
+                        (key, value) => {
+                            let result = value;
+                            switch(typeof value) {
+                                case 'string': // Don't serialize empty string value properties
+                                    result = (value.length > 0) ? value : undefined;
+                                    break;
+                                case 'object':
+                                    if (Array.isArray(value)) {
+                                        // Don't serialize empty array value properties
+                                        result = (value.length) > 0 ? value : undefined;
+                                    } else {
+                                        // Don't serialize object value properties
+                                        result = (Object.getOwnPropertyNames(value).length > 0) ? value : undefined;
+                                    }
+                                    break;
+                            }
+                            return result;
+                        }, 2);
+                break;
+            }
+            case 'yaml': {
+                let yaml = require('js-yaml');
+                serialized = '---\n' + yaml.safeDump(tmp);
+                break;
+            }
+        }
+
+        return serialized;
+    }
+
+
+    serializeProviderConfiguration(providers: Array<ProviderConfig>, format: string): string {
+        let serialized: string;
+
+        let tmp = {};
+        tmp['providers'] = providers;
+
+        switch(format) {
+            case 'json': {
+                serialized = JSON.stringify(tmp, null, 2);
+                break;
+            }
+            case 'yaml': {
+                let yaml = require('js-yaml');
+                serialized = '---\n' + yaml.dump(tmp);
+                break;
+            }
+        }
+
+        return serialized;
+    }
+
 
     addHeaders(headers: HttpHeaders, resName: string): HttpHeaders {
         let ext = resName.split('.').pop();
@@ -169,6 +248,7 @@ export class ResourceService {
     }
 
     selectedResourceType(value: string) {
+        //console.debug('ResourceService --> selectedResourceType(\'' + value +'\')')
         this.selectedResourceTypeSource.next(value);
     }
 

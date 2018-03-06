@@ -7,21 +7,99 @@
 
   <!-- Provider Configuration Details -->
   <div class="panel-body" *ngIf="hasSelectedResource() && resourceType === 'Provider Configurations'">
-    <div *ngIf="hasSelectedResource()">
-      <div class="panel panel-default" *ngFor="let provider of providers">
-        <span [class]="'clickable glyhpicon glyphicon-' + (provider.show ? 'minus' : 'plus')"
-                 (click)="provider.show = !provider.show"></span>
-        <span><b>{{ provider.name }}</b></span>
-        <span class="glyphicon glyphicon-remove-sign pull-right" data-toggle="tooltip" [title]="'Remove ' + provider.name"></span>
-        <div *ngIf="provider.show">
-          &nbsp;&nbsp;&nbsp;<b>Role</b> {{ provider.role }}<br>
-          &nbsp;&nbsp;&nbsp;<b>Enabled</b> {{ provider.enabled }}<br>
-          <div>
-            <span>&nbsp;&nbsp;&nbsp;</span>
-            <span [class]="'clickable glyhpicon glyphicon-' + (provider.paramDetails ? 'minus' : 'plus')"
-                  (click)="provider.paramDetails = !provider.paramDetails"></span>
-            <span><b>Params</b></span>
-            <span class="glyphicon glyphicon-plus-sign pull-right" data-toggle="tooltip" title="Add Param"></span>
+    <div *ngIf="referencedProviderConfigError" class="alert alert-warning alert-dismissible" role="alert">
+      <button type="button" class="close" data-dismiss="alert" aria-label="Close" (click)="referencedProviderConfigError=false">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      Cannot remove <strong>{{resourceService.getResourceDisplayName(resource)}}</strong> because it is referenced by one or more descriptors
+    </div>
+    <div style="padding-bottom: 10px">
+      <span><strong>Providers</strong></span>
+      <span *ngIf="!isAddingProvider"
+            class="clickable inline-glyph glyphicon glyphicon-plus-sign btn btn-xs pull-right"
+            (click)="isAddingProvider=true"
+            data-toggle="tooltip" title="Add Provider"></span>
+      <span *ngIf="isAddingProvider" class="inline-editor inlineEditForm pull-right">
+        <input type="text" value="name" onClick="this.setSelectionRange(0, this.value.length)" #newProviderName>
+        <input type="text" value="role" onClick="this.setSelectionRange(0, this.value.length)" #newProviderRole>
+        <button class="btn btn-xs"
+                (click)="isAddingProvider=false;
+                         addProvider(newProviderName.value, newProviderRole.value)">
+          <span class="glyphicon glyphicon-ok "></span>
+        </button>
+        <button class="btn btn-xs" (click)="isAddingProvider=false">
+          <span class="glyphicon glyphicon-remove"></span>
+        </button>
+      </span>
+    </div>
+    <div class="panel panel-default" *ngFor="let provider of providers">
+      <div class="panel-heading">
+        <span>&nbsp;</span>
+        <span [class]="'clickable inline-glyph glyhpicon glyphicon-' + (isShowProvider(provider) ? 'minus' : 'plus')"
+              (click)="toggleShowProvider(provider)"></span>
+        <span><strong>{{ provider.name }}</strong></span>
+        <span class="clickable inline-glyph glyphicon glyphicon-remove pull-right btn btn-xs"
+              [title]="'Remove ' + provider.name"
+              (click)="onRemoveProvider(provider.name)"
+              data-toggle="tooltip"></span>
+      </div>
+      <div class="panel-body" *ngIf="isShowProvider(provider)">
+        <strong>Role</strong> {{ provider.role }}<br>
+        <strong>Enabled</strong>&nbsp;<input type="checkbox"
+                                             [checked]="isProviderEnabled(provider)"
+                                             (click)="onProviderEnabled(provider)"><br>
+        <div>
+          <span [class]="'clickable inline-glyph glyhpicon glyphicon-' + (isShowProviderParams(provider) ? 'minus' : 'plus')"
+                (click)="toggleShowProviderParams(provider)"></span>
+          <span><strong>Params</strong></span>
+          <span *ngIf="!isAddingProviderParam(provider)"
+                class="clickable inline-glyph glyphicon glyphicon-plus-sign btn btn-xs"
+                (click)="setAddingProviderParam(provider,true)"
+                data-toggle="tooltip" title="Add Param"></span>
+          <span *ngIf="isAddingProviderParam(provider)" class="inline-editor inlineEditForm">
+            <input type="text" value="name" onClick="this.setSelectionRange(0, this.value.length)" #newParamName>
+            <input type="text" value="value" onClick="this.setSelectionRange(0, this.value.length)" #newParamValue>
+            <button class="btn btn-xs"
+                    (click)="setAddingProviderParam(provider,false);
+                             addProviderParam(provider, newParamName.value, newParamValue.value);
+                             showProviderParams(provider)">
+              <span class="glyphicon glyphicon-ok "></span>
+            </button>
+            <button class="btn btn-xs" (click)="setAddingProviderParam(provider,false)">
+              <span class="glyphicon glyphicon-remove"></span>
+            </button>
+          </span>
+          <div class="panel panel-default table-responsive" *ngIf="isShowProviderParams(provider)">
+            <table class="table table-sm">
+              <tr *ngFor="let paramName of getProviderParamNames(provider)">
+                <td>
+                  <span class="clickable inline-glyph glyphicon glyphicon-remove btn btn-xs"
+                        title="Remove Param"
+                        (click)="onRemoveProviderParam(provider, paramName)"
+                        data-toggle="tooltip"></span>
+                </td>
+                <td><strong>{{ paramName }}</strong></td>
+                <td>
+                  <span class="inline-editable"
+                        (click)="setProviderParamEditFlag(provider, paramName, true)"
+                        *ngIf="!getProviderParamEditFlag(provider, paramName)">{{provider.params[paramName]}}</span>
+                  <span *ngIf="getProviderParamEditFlag(provider, paramName)" class="inline-editor inlineEditForm">
+                    <input type="text" size="30" [(ngModel)]="provider.params[paramName]">
+                    <button class="btn btn-xs"
+                            (click)="setProviderParamEditFlag(provider, paramName, false);changedProviders=providers">
+                      <span class="glyphicon glyphicon-ok"></span>
+                    </button>
+                    <button class="btn btn-xs" (click)="setProviderParamEditFlag(provider, paramName, false)">
+                      <span class="glyphicon glyphicon-remove"></span>
+                    </button>
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </div> <!-- Provider params -->
+        </div>
+      </div> <!-- Provider Details -->
+    </div> <!-- Provider panel -->
 
             <div class="panel panel-default table-responsive" *ngIf="provider.paramDetails">
               <table class="table table-sm">
@@ -43,19 +121,18 @@
 
   <!-- Descriptor Details -->
   <div class="panel-body" *ngIf="hasSelectedResource() && resourceType === 'Descriptors'">
-    <!-- The resource name is undefined if it's the empty descriptor because none has been selected yet. -->
-    <div *ngIf="hasSelectedResource()">
-      <div>
-        <div class="panel panel-default col-md-12">
-          <span class="col-md-4"><b>Provider Configuration</b></span>
-          <span class="col-md-7">
-            <input type="text" class="col-md-sm form-control input-sm" [(ngModel)]="descriptor.providerConfig" id="textbox"/>
-          </span>
-          <span class="col-md-1 pull-left">
-            <button id="chooseProviderConfig"
-                    class="btn btn-default btn-xs glyphicon glyphicon-edit"
-                    (click)="chooseProviderConfigModal.open(descriptor, 'sm')"
-                    type="submit">
+    <div> <!-- Provider Config reference -->
+      <div class="panel panel-default col-md-12">
+        <span class="col-md-12 pull-left">
+          <span class="col-md-sm"><strong>Provider Configuration</strong>&nbsp;</span>
+          <span class="col-md-sm inline-editable" (click)="editModePC=true" *ngIf="!editModePC">{{descriptor.providerConfig}}</span>
+          <span class="col-md-sm inline-editor inlineEditForm" *ngIf="editModePC">
+            <input type="text" size="40" [(ngModel)]="descriptor.providerConfig">
+            <button class="btn btn-xs" (click)="editModePC=false;descriptor.setDirty()">
+              <span class="glyphicon glyphicon-ok"></span>
+            </button>
+            <button class="btn btn-xs" (click)="editModePC=false">
+              <span class="glyphicon glyphicon-remove"></span>
             </button>
           </span>
         </div>
