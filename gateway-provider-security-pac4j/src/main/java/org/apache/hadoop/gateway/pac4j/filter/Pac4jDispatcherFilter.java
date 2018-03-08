@@ -17,6 +17,7 @@
  */
 package org.apache.hadoop.gateway.pac4j.filter;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.gateway.i18n.messages.MessagesFactory;
 import org.apache.hadoop.gateway.pac4j.Pac4jMessages;
 import org.apache.hadoop.gateway.pac4j.session.KnoxSessionStore;
@@ -36,6 +37,8 @@ import org.pac4j.http.client.indirect.IndirectBasicAuthClient;
 import org.pac4j.http.credentials.authenticator.test.SimpleTestUsernamePasswordAuthenticator;
 import org.pac4j.j2e.filter.CallbackFilter;
 import org.pac4j.j2e.filter.SecurityFilter;
+import org.pac4j.core.context.session.J2ESessionStore;
+import org.pac4j.core.context.session.SessionStore;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
@@ -70,6 +73,8 @@ public class Pac4jDispatcherFilter implements Filter {
   public static final String PAC4J_CALLBACK_PARAMETER = "pac4jCallback";
 
   private static final String PAC4J_COOKIE_DOMAIN_SUFFIX_PARAM = "pac4j.cookie.domain.suffix";
+
+  private static final String PAC4J_SESSION_STORE = "pac4j.session.store";
 
   private CallbackFilter callbackFilter;
 
@@ -158,7 +163,18 @@ public class Pac4jDispatcherFilter implements Filter {
     securityFilter.setConfig(config);
 
     final String domainSuffix = filterConfig.getInitParameter(PAC4J_COOKIE_DOMAIN_SUFFIX_PARAM);
-    config.setSessionStore(new KnoxSessionStore(cryptoService, clusterName, domainSuffix));
+    final String sessionStoreVar = filterConfig.getInitParameter(PAC4J_SESSION_STORE);
+
+    SessionStore sessionStore;
+
+    if(!StringUtils.isBlank(sessionStoreVar) && J2ESessionStore.class.getName().contains(sessionStoreVar) ) {
+      sessionStore = new J2ESessionStore();
+    } else {
+      sessionStore = new KnoxSessionStore(cryptoService, clusterName, domainSuffix);
+    }
+
+    config.setSessionStore(sessionStore);
+
     ConfigSingleton.setConfig(config);
   }
 
