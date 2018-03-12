@@ -1,6 +1,14 @@
 Changes only in Hortonworks github and not in the released Knox v0.12.0 and hence not covered by CHANGES.txt.
 
 Improvements and Bugs:
+    KNOX-1190 - Compress cookies set by Pac4J, in some cases the cookie size exceeds 4K and cause them not to set.
+    KNOX-1199 - Ambari View API for Tez View needs Double Quotes Encoded on Dispatch
+    KNOX-1197 - Fix a bug where Anonymous auth is not picked up with federation provider
+    KNOX-1083 - HttpClient default timeout will be 20 sec
+    KNOX-1076 - Update nimbus-jose-jwt to 4.41.2
+    KNOX-1119 - Pac4J OAuth/OpenID Principal Needs to be Configurable (Andreas Hildebrandt via lmccay)
+    KNOX-1145 - Upgrade Jackson due to CVE-2017-7525
+    KNOX-1108 - NiFiHaDispatch not failing over
     KNOX-964 - upgrade to httpclient 4.5.3 to avoid licensing issues HTTPCLIENT-1743/LEGAL-240 (Jeffrey E Rodriguez via lmccay)
     KNOX-789 - Apache Atlas REST API support
     KNOX-788 - Apache Atlas Admin UI Support through Knox (Nixon Rodrigues via Sandeep More)
