@@ -58,7 +58,6 @@ export class ResourceService {
 
     getProviderConfigResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
-        this.logHeaders(headers);
         return this.http.get(this.providersUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['items'] as Resource[])
@@ -67,7 +66,6 @@ export class ResourceService {
 
     getDescriptorResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
-        this.logHeaders(headers);
         return this.http.get(this.descriptorsUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['items'] as Resource[])
@@ -76,7 +74,6 @@ export class ResourceService {
 
     getTopologyResources(): Promise<Resource[]> {
         let headers = this.addJsonHeaders(new HttpHeaders());
-        this.logHeaders(headers);
         return this.http.get(this.topologiesUrl, { headers: headers })
                         .toPromise()
                         .then(response => response['topologies'].topology as Resource[])
@@ -84,23 +81,29 @@ export class ResourceService {
     }
 
     getResource(resType: string, res : Resource): Promise<string> {
-        let headers = new HttpHeaders();
-        headers = (resType === 'Topologies') ? this.addXmlHeaders(headers) : this.addHeaders(headers, res.name);
-        this.logHeaders(headers);
+        if (res) {
+            let headers = new HttpHeaders();
+            headers = (resType === 'Topologies') ? this.addXmlHeaders(headers) : this.addHeaders(headers, res.name);
 
-        return this.http.get(res.href, { headers: headers, responseType: 'text' })
-                        .toPromise()
-                        .then(response => {
-                            console.debug('ResourceService --> getResource() --> response: ' + response);
-                            return response;
-                        })
-                        .catch(this.handleError);
+            return this.http.get(res.href, {headers: headers, responseType: 'text'})
+                .toPromise()
+                .then(response => {
+                    console.debug('ResourceService --> Loading resource ' + res.name + ' :\n' + response);
+                    return response;
+                })
+                .catch((err: HttpErrorResponse) => {
+                    console.debug('ResourceService --> getResource() ' + res.name + '\n  error: ' + err.message);
+                    return this.handleError(err);
+                });
+        } else {
+            return Promise.resolve(null);
+        }
     }
 
-    saveResource(url: string, xml : string): Promise<string> {
-        let headers = this.addXmlHeaders(new HttpHeaders());
-        headers = this.addCsrfHeaders(headers);
-        this.logHeaders(headers);
+    saveResource(resource: Resource, content: string): Promise<string> {
+        let headers = this.addHeaders(new HttpHeaders(), resource.name);
+
+        console.debug('ResourceService --> Persisting ' + resource.name + '\n' + content);
 
         return this.http.put(url, xml, {headers: headers})
                         .toPromise()
@@ -108,10 +111,8 @@ export class ResourceService {
                         .catch(this.handleError);
     }
 
-    createResource(name: string, xml : string): Promise<string> {
-        let headers = this.addXmlHeaders(new HttpHeaders());
-        headers = this.addCsrfHeaders(headers);
-        this.logHeaders(headers);
+    createResource(resType: string, resource: Resource, content : string): Promise<string> {
+        let headers = this.addHeaders(new HttpHeaders(), resource.name);
 
         let url = ((resType === 'Descriptors') ? this.descriptorsUrl : this.providersUrl) + '/' + resource.name;
         return this.http.put(url, content, {headers: headers})
@@ -122,8 +123,6 @@ export class ResourceService {
 
     deleteResource(href: string): Promise<string> {
         let headers = this.addJsonHeaders(new HttpHeaders());
-        headers = this.addCsrfHeaders(headers);
-        this.logHeaders(headers);
 
         return this.http.delete(href, { headers: headers } )
                         .toPromise()
@@ -225,22 +224,23 @@ export class ResourceService {
               break;
           }
         }
+        this.logHeaders(headers); // TODO: PJZ: DELETE ME
         return headers;
     }
 
     addTextPlainHeaders(headers: HttpHeaders) {
-        return headers.append('Accept', 'text/plain')
-                      .append('Content-Type', 'text/plain');
+        return this.addCsrfHeaders(headers.append('Accept', 'text/plain')
+                                          .append('Content-Type', 'text/plain'));
     }
 
     addJsonHeaders(headers: HttpHeaders): HttpHeaders {
-        return headers.append('Accept', 'application/json')
-                      .append('Content-Type', 'application/json');
+        return this.addCsrfHeaders(headers.append('Accept', 'application/json')
+                                          .append('Content-Type', 'application/json'));
     }
 
     addXmlHeaders(headers: HttpHeaders): HttpHeaders {
-        return headers.append('Accept', 'application/xml')
-                      .append('Content-Type', 'application/xml');
+        return this.addCsrfHeaders(headers.append('Accept', 'application/xml')
+                                          .append('Content-Type', 'application/xml'));
     }
 
     addCsrfHeaders(headers: HttpHeaders): HttpHeaders {
