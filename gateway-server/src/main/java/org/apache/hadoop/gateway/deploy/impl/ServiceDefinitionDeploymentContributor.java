@@ -232,6 +232,9 @@ public class ServiceDefinitionDeploymentContributor extends ServiceDeploymentCon
     if (httpClientFactory != null) {
       filter.param().name(HTTP_CLIENT_FACTORY_PARAM).value(httpClientFactory);
     }
+    // let's take the value of useTwoWaySsl which is derived from the service definition
+    // then allow it to be overridden by service params from the topology
+    filter.param().name("useTwoWaySsl").value(Boolean.toString(useTwoWaySsl));
     for ( Map.Entry<String, String> serviceParam : service.getParams().entrySet() ) {
       filter.param().name(serviceParam.getKey()).value(serviceParam.getValue());
     }
@@ -242,7 +245,6 @@ public class ServiceDefinitionDeploymentContributor extends ServiceDeploymentCon
       //special case for hive
       filter.param().name("basicAuthPreemptive").value("true");
     }
-    filter.param().name("useTwoWaySsl").value(Boolean.toString(useTwoWaySsl));
     return filter;
   }
 
