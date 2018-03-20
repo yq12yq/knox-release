@@ -44,6 +44,8 @@ public class SSOCookieFederationFilter extends AbstractJWTFilter {
   private static JWTMessages log = MessagesFactory.get( JWTMessages.class );
   private static final String ORIGINAL_URL_QUERY_PARAM = "originalUrl=";
   private static final String DEFAULT_SSO_COOKIE_NAME = "hadoop-jwt";
+  private static final String XHR_HEADER = "X-Requested-With";
+  private static final String XHR_VALUE = "XMLHttpRequest";
 
   private String cookieName;
   private String authenticationProviderUrl;
@@ -117,7 +119,19 @@ public class SSOCookieFederationFilter extends AbstractJWTFilter {
   protected void handleValidationError(HttpServletRequest request, HttpServletResponse response, int status,
                                        String error) throws IOException {
     String loginURL = constructLoginURL(request);
-    response.sendRedirect(loginURL);
+
+    /* We don't need redirect if this is a XHR request */
+    if (request.getHeader(XHR_HEADER) != null && request.getHeader(XHR_HEADER)
+        .equalsIgnoreCase(XHR_VALUE)) {
+      final byte[] data = error.getBytes("UTF-8");
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      response.setContentType("text/plain");
+      response.setContentLength(data.length);
+      response.getOutputStream().write(data);
+    } else {
+      response.sendRedirect(loginURL);
+    }
+
   }
 
   /**
