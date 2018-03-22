@@ -17,3 +17,4 @@
 ##########################################################################
 
 org.apache.hadoop.gateway.ha.provider.impl.HS2ZookeeperURLManager
+org.apache.hadoop.gateway.ha.provider.impl.AtlasZookeeperURLManager
