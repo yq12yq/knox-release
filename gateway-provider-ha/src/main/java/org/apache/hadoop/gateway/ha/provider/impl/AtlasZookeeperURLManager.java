@@ -57,6 +57,9 @@ public class AtlasZookeeperURLManager extends DefaultURLManager {
     public void setConfig(HaServiceConfig config) {
         zooKeeperEnsemble = config.getZookeeperEnsemble();
         zooKeeperNamespace = config.getZookeeperNamespace();
+        if (!zooKeeperNamespace.startsWith("/")) {
+            zooKeeperNamespace = "/" + zooKeeperNamespace;
+        }
         setURLs(lookupURLs());
     }
 
@@ -71,7 +74,7 @@ public class AtlasZookeeperURLManager extends DefaultURLManager {
 
             zooKeeperClient.start();
 
-            byte[] bytes = zooKeeperClient.getData().forPath("/" + zooKeeperNamespace + APACHE_ATLAS_ACTIVE_SERVER_INFO );
+            byte[] bytes = zooKeeperClient.getData().forPath(zooKeeperNamespace + APACHE_ATLAS_ACTIVE_SERVER_INFO );
 
             String activeURL = new String(bytes, Charset.forName("UTF-8"));
 
