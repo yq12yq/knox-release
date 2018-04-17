@@ -33,13 +33,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AtlasZookeeperURLManager extends DefaultURLManager {
+
+    private static final String DEFAULT_ZOOKEEPER_NAMESPACE = "/apache_atlas";
+
+    private static final String APACHE_ATLAS_ACTIVE_SERVER_INFO = "/active_server_info";
+
     private static final HaMessages LOG = MessagesFactory.get(HaMessages.class);
 
     private String zooKeeperEnsemble;
 
     private String zooKeeperNamespace;
-
-    public static final String APACHE_ATLAS_ACTIVE_SERVER_INFO = "/active_server_info";
 
 
     @Override
@@ -49,16 +52,19 @@ public class AtlasZookeeperURLManager extends DefaultURLManager {
             return false;
         }
         String zookeeperEnsemble = config.getZookeeperEnsemble();
-        String zookeeperNamespace = config.getZookeeperNamespace();
-        return zookeeperEnsemble != null && zookeeperNamespace != null && !zookeeperEnsemble.trim().isEmpty() && !zookeeperNamespace.trim().isEmpty();
+        return zookeeperEnsemble != null && !zookeeperEnsemble.trim().isEmpty();
     }
 
     @Override
     public void setConfig(HaServiceConfig config) {
         zooKeeperEnsemble = config.getZookeeperEnsemble();
         zooKeeperNamespace = config.getZookeeperNamespace();
-        if (!zooKeeperNamespace.startsWith("/")) {
-            zooKeeperNamespace = "/" + zooKeeperNamespace;
+        if (zooKeeperNamespace != null) {
+            if (!zooKeeperNamespace.startsWith("/")) {
+                zooKeeperNamespace = "/" + zooKeeperNamespace;
+            }
+        } else {
+            zooKeeperNamespace = DEFAULT_ZOOKEEPER_NAMESPACE;
         }
         setURLs(lookupURLs());
     }
@@ -95,7 +101,7 @@ public class AtlasZookeeperURLManager extends DefaultURLManager {
 
     @Override
     public synchronized void markFailed(String url) {
-            setURLs(lookupURLs());
-            super.markFailed(url);
+        setURLs(lookupURLs());
+        super.markFailed(url);
     }
 }
