@@ -747,10 +747,12 @@ public class DeploymentFactoryFuncTest {
     assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[1]/class", equalTo( "org.apache.hadoop.gateway.filter.AnonymousAuthFilter" ) ) );
     assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[2]/role", equalTo( "rewrite" ) ) );
     assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[2]/class", equalTo( "org.apache.hadoop.gateway.filter.rewrite.api.UrlRewriteServletFilter" ) ) );
-    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/role", equalTo( "authorization" ) ) );
-    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/class", equalTo( "org.apache.hadoop.gateway.filter.AclsAuthorizationFilter" ) ) );
-    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[4]/role", equalTo( "dispatch" ) ) );
-    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[4]/class", equalTo( "org.apache.hadoop.gateway.dispatch.GatewayDispatchFilter" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/role", equalTo( "identity-assertion" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/class", equalTo( "org.apache.hadoop.gateway.identityasserter.filter.IdentityAsserterFilter" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[4]/role", equalTo( "authorization" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[4]/class", equalTo( "org.apache.hadoop.gateway.filter.AclsAuthorizationFilter" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[5]/role", equalTo( "dispatch" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[5]/class", equalTo( "org.apache.hadoop.gateway.dispatch.GatewayDispatchFilter" ) ) );
 
     final Document gateway2 = XmlUtils.readXml( war.get( "%2F/WEB-INF/gateway.xml" ).getAsset().openStream() );
 
@@ -759,10 +761,12 @@ public class DeploymentFactoryFuncTest {
     assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[1]/class", equalTo( "org.apache.hadoop.gateway.filter.AnonymousAuthFilter" ) ) );
     assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[2]/role", equalTo( "rewrite" ) ) );
     assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[2]/class", equalTo( "org.apache.hadoop.gateway.filter.rewrite.api.UrlRewriteServletFilter" ) ) );
-    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[3]/role", equalTo( "authorization" ) ) );
-    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[3]/class", equalTo( "org.apache.hadoop.gateway.filter.AclsAuthorizationFilter" ) ) );
-    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[4]/role", equalTo( "dispatch" ) ) );
-    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[4]/class", equalTo( "org.apache.hadoop.gateway.dispatch.GatewayDispatchFilter" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/role", equalTo( "identity-assertion" ) ) );
+    assertThat( gateway, hasXPath( "/gateway/resource[1]/filter[3]/class", equalTo( "org.apache.hadoop.gateway.identityasserter.filter.IdentityAsserterFilter" ) ) );
+    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[4]/role", equalTo( "authorization" ) ) );
+    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[4]/class", equalTo( "org.apache.hadoop.gateway.filter.AclsAuthorizationFilter" ) ) );
+    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[5]/role", equalTo( "dispatch" ) ) );
+    assertThat( gateway2, hasXPath( "/gateway/resource[1]/filter[5]/class", equalTo( "org.apache.hadoop.gateway.dispatch.GatewayDispatchFilter" ) ) );
 
 
     LOG_EXIT();
