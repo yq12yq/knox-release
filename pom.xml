@@ -719,6 +719,15 @@
                 </exclusion>
               </exclusions>
             </dependency>
+            <!-- Transitive dependency for nimbus-jose-jwt.
+            Please re-check this version when updating nimbus-jose-jwt.
+            Please read KNOX-1275 for more details.
+            -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>2.3</version>
+            </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
