@@ -475,6 +475,74 @@
         </properties>
     </service>
 
+    <service name="YARNUI">
+        <url-pattern>{SCHEME}://{YARN_RM_WEBAPP_ADDRESS}</url-pattern>
+        <properties>
+            <property name="HTTP_ADDRESS">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.resourcemanager.webapp.address</config-property>
+            </property>
+            <property name="HTTPS_ADDRESS">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.resourcemanager.webapp.https.address</config-property>
+            </property>
+            <property name="HTTP_POLICY">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.http.policy</config-property>
+            </property>
+            <property name="SCHEME">
+                <config-property>
+                    <if property="HTTP_POLICY" value="HTTPS_ONLY">
+                        <then>https</then>
+                        <else>http</else>
+                    </if>
+                </config-property>
+            </property>
+            <property name="YARN_RM_WEBAPP_ADDRESS">
+                <config-property>
+                    <if property="HTTP_POLICY" value="HTTPS_ONLY">
+                        <then>HTTPS_ADDRESS</then>
+                        <else>HTTP_ADDRESS</else>
+                    </if>
+                </config-property>
+            </property>
+        </properties>
+    </service>
+
+    <service name="YARNUIV2">
+        <url-pattern>{SCHEME}://{YARN_RM_WEBAPP_ADDRESS}</url-pattern>
+        <properties>
+            <property name="HTTP_ADDRESS">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.resourcemanager.webapp.address</config-property>
+            </property>
+            <property name="HTTPS_ADDRESS">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.resourcemanager.webapp.https.address</config-property>
+            </property>
+            <property name="HTTP_POLICY">
+                <component>RESOURCEMANAGER</component>
+                <config-property>yarn.http.policy</config-property>
+            </property>
+            <property name="SCHEME">
+                <config-property>
+                    <if property="HTTP_POLICY" value="HTTPS_ONLY">
+                        <then>https</then>
+                        <else>http</else>
+                    </if>
+                </config-property>
+            </property>
+            <property name="YARN_RM_WEBAPP_ADDRESS">
+                <config-property>
+                    <if property="HTTP_POLICY" value="HTTPS_ONLY">
+                        <then>HTTPS_ADDRESS</then>
+                        <else>HTTP_ADDRESS</else>
+                    </if>
+                </config-property>
+            </property>
+        </properties>
+    </service>
+
     <service name="JOBHISTORYUI">
         <url-pattern>{JOBHISTORY_WEBAPP_ADDRESS}</url-pattern>
         <properties>
@@ -523,6 +591,36 @@
             <property name="PORT">
                 <component>STORM_UI_SERVER</component>
                 <config-property>logviewer.port</config-property>
+            </property>
+        </properties>
+    </service>
+
+    <service name="LOGSEARCH">
+        <url-pattern>{SCHEME}://{HOST}:{PORT}</url-pattern>
+        <properties>
+            <property name="HOST">
+                <component>LOGSEARCH_SERVER</component>
+                <hostname/>
+            </property>
+            <property name="SCHEME">
+                <component>LOGSEARCH_SERVER</component>
+                <config-property>logsearch.protocol</config-property>
+            </property>
+            <property name="HTTP_PORT">
+                <component>LOGSEARCH_SERVER</component>
+                <config-property>logsearch.http.port</config-property>
+            </property>
+            <property name="HTTPS_PORT">
+                <component>LOGSEARCH_SERVER</component>
+                <config-property>logsearch.https.port</config-property>
+            </property>
+            <property name="PORT">
+                <config-property>
+                    <if property="SCHEME" value="https">
+                        <then>HTTPS_PORT</then>
+                        <else>HTTP_PORT</else>
+                    </if>
+                </config-property>
             </property>
         </properties>
     </service>
