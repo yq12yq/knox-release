@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -72,6 +73,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.xml.HasXPath.hasXPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -731,6 +733,196 @@ public class GatewayAdminTopologyFuncTest {
     LOG_EXIT();
   }
 
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutTopologyWithInvalidName() throws Exception {
+    LOG_ENTER() ;
+
+    String username = "admin";
+    String password = "admin-password";
+    String url = clusterUrl + "/api/v1/topologies/test-put-!nvalid";
+
+    String JsonPut = given().auth().preemptive().basic(username, password)
+                            .header("Accept", MediaType.APPLICATION_JSON)
+                            .get(clusterUrl + "/api/v1/topologies/test-cluster")
+                            .getBody().asString();
+
+    given().auth().preemptive().basic(username, password)
+           .contentType(MediaType.APPLICATION_JSON)
+           .header("Accept", MediaType.APPLICATION_XML)
+           .body(JsonPut)
+           .then()
+           .statusCode(HttpStatus.SC_BAD_REQUEST)
+           .when().put(url).getBody().asString();
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutTopologyWithEntityInjection() throws Exception {
+    LOG_ENTER() ;
+
+    final String MALICIOUS_PARAM_NAME = "exposed";
+
+    final String XML_WITH_INJECTION =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+        "<!DOCTYPE foo [<!ENTITY xxeiltvf SYSTEM \"file:///etc/hosts\"> ]>\n" +
+        "<topology>\n" +
+        "    <gateway>\n" +
+        "        <provider>\n" +
+        "            <role>authentication</role>\n" +
+        "            <name>ShiroProvider</name>\n" +
+        "            <enabled>true</enabled>\n" +
+        "            <param>\n" +
+        "                <name>" + MALICIOUS_PARAM_NAME + "</name>\n" +
+        "                <value>&xxeiltvf;</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>sessionTimeout</name>\n" +
+        "                <value>30</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapRealm</name>\n" +
+        "                <value>org.apache.knox.gateway.shirorealm.KnoxLdapRealm</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapContextFactory</name>\n" +
+        "                <value>org.apache.knox.gateway.shirorealm.KnoxLdapContextFactory</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapRealm.contextFactory</name>\n" +
+        "                <value>$ldapContextFactory</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapRealm.userDnTemplate</name>\n" +
+        "                <value>uid={0},ou=people,dc=hadoop,dc=apache,dc=org</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapRealm.contextFactory.url</name>\n" +
+        "                <value>ldap://localhost:33389</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>main.ldapRealm.contextFactory.authenticationMechanism</name>\n" +
+        "                <value>simple</value>\n" +
+        "            </param>\n" +
+        "            <param>\n" +
+        "                <name>urls./**</name>\n" +
+        "                <value>authcBasic</value>\n" +
+        "            </param>\n" +
+        "        </provider>\n" +
+        "    </gateway>\n" +
+        "    <service>\n" +
+        "        <role>NAMENODE</role>\n" +
+        "        <url>hdfs://localhost:8020</url>\n" +
+        "    </service>\n" +
+        "</topology>";
+
+    String username = "admin";
+    String password = "admin-password";
+    String url = clusterUrl + "/api/v1/topologies/test-put-with-entity-injection";
+
+    // Should get a response with missing entity reference value because of the entity injection prevention safeguard
+    String XML_RESPONSE = given().auth().preemptive().basic(username, password)
+                                 .contentType(MediaType.APPLICATION_XML)
+                                 .header("Accept", MediaType.APPLICATION_XML)
+                                 .body(XML_WITH_INJECTION)
+                                 .then()
+                                 .statusCode(HttpStatus.SC_OK)
+                                 .when().put(url).getBody().asString();
+
+    Document doc = XmlUtils.readXml(new InputSource(new StringReader(XML_RESPONSE)));
+    assertNotNull(doc);
+
+    assertThat(doc, hasXPath("/topology/gateway/provider[1]/param/name", containsString("exposed")));
+    assertThat(doc, hasXPath("/topology/gateway/provider[1]/param[\"" + MALICIOUS_PARAM_NAME + "\"]/value", is("")));
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutTopologyWithEntityExpansion() throws Exception {
+    LOG_ENTER() ;
+
+    final String MALICIOUS_PARAM_NAME = "expanded";
+
+    final String XML_WITH_INJECTION =
+        "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
+            "<!DOCTYPE foo [<!ENTITY xeevowya0 \"b68et\"><!ENTITY xeevowya1 \"&xeevowya0;&xeevowya0;\"><!ENTITY xeevowya2 \"&xeevowya1;&xeevowya1;\"><!ENTITY xeevowya3 \"&xeevowya2;&xeevowya2;\">]>\n" +
+            "<topology>\n" +
+            "    <gateway>\n" +
+            "        <provider>\n" +
+            "            <role>authentication</role>\n" +
+            "            <name>ShiroProvider</name>\n" +
+            "            <enabled>true</enabled>\n" +
+            "            <param>\n" +
+            "                <name>" + MALICIOUS_PARAM_NAME + "</name>\n" +
+            "                <value>&xeevowya3;</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>sessionTimeout</name>\n" +
+            "                <value>30</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapRealm</name>\n" +
+            "                <value>org.apache.knox.gateway.shirorealm.KnoxLdapRealm</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapContextFactory</name>\n" +
+            "                <value>org.apache.knox.gateway.shirorealm.KnoxLdapContextFactory</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapRealm.contextFactory</name>\n" +
+            "                <value>$ldapContextFactory</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapRealm.userDnTemplate</name>\n" +
+            "                <value>uid={0},ou=people,dc=hadoop,dc=apache,dc=org</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapRealm.contextFactory.url</name>\n" +
+            "                <value>ldap://localhost:33389</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>main.ldapRealm.contextFactory.authenticationMechanism</name>\n" +
+            "                <value>simple</value>\n" +
+            "            </param>\n" +
+            "            <param>\n" +
+            "                <name>urls./**</name>\n" +
+            "                <value>authcBasic</value>\n" +
+            "            </param>\n" +
+            "        </provider>\n" +
+            "    </gateway>\n" +
+            "    <service>\n" +
+            "        <role>NAMENODE</role>\n" +
+            "        <url>hdfs://localhost:8020</url>\n" +
+            "    </service>\n" +
+            "</topology>";
+
+    String username = "admin";
+    String password = "admin-password";
+    String url = clusterUrl + "/api/v1/topologies/test-put-with-entity-injection";
+
+    // Should get a HTTP 500 response because of the entity injection prevention safeguard
+    String XML_RESPONSE = given().auth().preemptive().basic(username, password)
+                                 .contentType(MediaType.APPLICATION_XML)
+                                 .header("Accept", MediaType.APPLICATION_XML)
+                                 .body(XML_WITH_INJECTION)
+                                 .then()
+                                 .statusCode(HttpStatus.SC_OK)
+                                 .when().put(url).getBody().asString();
+
+    Document doc = XmlUtils.readXml(new InputSource(new StringReader(XML_RESPONSE)));
+    assertNotNull(doc);
+
+    assertThat(doc, hasXPath("/topology/gateway/provider[1]/param/name", containsString("expanded")));
+    assertThat(doc, hasXPath("/topology/gateway/provider[1]/param[\"" + MALICIOUS_PARAM_NAME + "\"]/value", is("")));
+
+    LOG_EXIT();
+  }
+
+
   @Test( timeout = TestUtils.LONG_TIMEOUT )
   public void testXForwardedHeaders() {
     LOG_ENTER();
@@ -1048,6 +1240,36 @@ public class GatewayAdminTopologyFuncTest {
 
     // Manually delete the provider config
     newProviderConfigFile.delete();
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutProviderConfigurationWithInvalidName() throws Exception {
+    LOG_ENTER();
+
+    final String username = "admin";
+    final String password = "admin-password";
+    final String serviceUrl = clusterUrl + "/api/v1/providerconfig";
+
+    final String newProviderConfigName     = "new-provider&config";
+    final String newProviderConfigFileName = newProviderConfigName + ".xml";
+
+    XMLTag newProviderConfigXML = createProviderConfiguration();
+
+    // Attempt to PUT a provider config
+    given().auth().preemptive().basic(username, password)
+           .header("Content-type", MediaType.APPLICATION_XML)
+           .body(newProviderConfigXML.toBytes("utf-8"))
+           .then()
+           .statusCode(HttpStatus.SC_BAD_REQUEST)
+           .when().put(serviceUrl + "/" + newProviderConfigName);
+
+    // Verify that the provider configuration was written to the expected location
+    File newProviderConfigFile =
+        new File(new File(config.getGatewayConfDir(), "shared-providers"), newProviderConfigFileName);
+    assertFalse(newProviderConfigFile.exists());
 
     LOG_EXIT();
   }
@@ -1431,6 +1653,216 @@ public class GatewayAdminTopologyFuncTest {
     newDescriptorFile.delete();
 
     LOG_EXIT();
+  }
+
+  @Test
+  public void testPutDescriptorWithValidEncodedName() throws Exception {
+
+    final String encodedName = "new%2Ddescriptor";
+    final String newDescriptorName = URLDecoder.decode(encodedName, "UTF-8");
+
+    final String username = "admin";
+    final String password = "admin-password";
+    final String serviceUrl = clusterUrl + "/api/v1/descriptors";
+
+    final String clusterName           = "test-cluster";
+    final String newDescriptorFileName = newDescriptorName + ".json";
+
+    String newDescriptorJSON = createDescriptor(clusterName);
+
+    // Attempt to PUT the descriptor
+    given().auth().preemptive().basic(username, password)
+           .header("Content-type", MediaType.APPLICATION_JSON)
+           .body(newDescriptorJSON.getBytes("utf-8"))
+           .then()
+           .statusCode(HttpStatus.SC_CREATED)
+           .when().put(serviceUrl + "/" + encodedName);
+
+    // Verify that the descriptor was written to the expected location
+    File newDescriptorFile = new File(new File(config.getGatewayConfDir(), "descriptors"), newDescriptorFileName);
+    assertTrue(newDescriptorFile.exists());
+
+    // Request a listing of all the descriptors to verify that the PUT FAILED
+    ResponseBody responseBody = given().auth().preemptive().basic(username, password)
+                                       .header("Accept", MediaType.APPLICATION_JSON)
+                                       .then()
+                                       .statusCode(HttpStatus.SC_OK)
+                                       .contentType(MediaType.APPLICATION_JSON)
+                                       .when().get(serviceUrl).body();
+    assertNotNull(responseBody);
+    boolean isCreated = false;
+    List<Map<String, String>> items = responseBody.path("items");
+    for (Map<String, String> item : items) {
+      if(item.get("name").equals(newDescriptorFileName)) {
+        isCreated = true;
+        break;
+      }
+    }
+    assertTrue(isCreated);
+
+    newDescriptorFile.delete();
+  }
+
+
+  @Test
+  public void testPutDescriptorWithFileExtension() throws Exception {
+
+    final String newDescriptorName = "newdescriptor";
+
+    final String username = "admin";
+    final String password = "admin-password";
+    final String serviceUrl = clusterUrl + "/api/v1/descriptors";
+
+    final String clusterName           = "test-cluster";
+    final String newDescriptorFileName = newDescriptorName + ".json";
+
+    String newDescriptorJSON = createDescriptor(clusterName);
+
+    // Attempt to PUT the descriptor
+    given().auth().preemptive().basic(username, password)
+           .header("Content-type", MediaType.APPLICATION_JSON)
+           .body(newDescriptorJSON.getBytes("utf-8"))
+           .then()
+           .statusCode(HttpStatus.SC_CREATED)
+           .when().put(serviceUrl + "/" + newDescriptorFileName);
+
+    // Verify that the descriptor was written to the expected location
+    File newDescriptorFile = new File(new File(config.getGatewayConfDir(), "descriptors"), newDescriptorFileName);
+    assertTrue(newDescriptorFile.exists());
+
+    // Request a listing of all the descriptors to verify that the PUT FAILED
+    ResponseBody responseBody = given().auth().preemptive().basic(username, password)
+                                       .header("Accept", MediaType.APPLICATION_JSON)
+                                       .then()
+                                       .statusCode(HttpStatus.SC_OK)
+                                       .contentType(MediaType.APPLICATION_JSON)
+                                       .when().get(serviceUrl).body();
+    assertNotNull(responseBody);
+    boolean isCreated = false;
+    List<Map<String, String>> items = responseBody.path("items");
+    for (Map<String, String> item : items) {
+      if(item.get("name").equals(newDescriptorFileName)) {
+        isCreated = true;
+        break;
+      }
+    }
+    assertTrue(isCreated);
+
+    newDescriptorFile.delete();
+  }
+
+
+  @Test
+  public void testPutDescriptorWithInvalidEncodedName() throws Exception {
+
+    final String encodedName = "'';!--%22%3CXSS%3E=&%7B()%7D";
+    final String newDescriptorName = URLDecoder.decode(encodedName, "UTF-8");
+
+    final String username = "admin";
+    final String password = "admin-password";
+    final String serviceUrl = clusterUrl + "/api/v1/descriptors";
+
+    final String clusterName           = "test-cluster";
+    final String newDescriptorFileName = newDescriptorName + ".json";
+
+    String newDescriptorJSON = createDescriptor(clusterName);
+
+    // Attempt to PUT the descriptor
+    given().auth().preemptive().basic(username, password)
+           .header("Content-type", MediaType.APPLICATION_JSON)
+           .body(newDescriptorJSON.getBytes("utf-8"))
+           .then()
+           .statusCode(HttpStatus.SC_BAD_REQUEST)
+           .when().put(serviceUrl + "/" + encodedName);
+
+    // Verify that the descriptor was NOT written to the expected location
+    File newDescriptorFile = new File(new File(config.getGatewayConfDir(), "descriptors"), newDescriptorFileName);
+    assertFalse(newDescriptorFile.exists());
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutDescriptorWithInvalidNameEncodedElement() throws Exception {
+    LOG_ENTER();
+
+    doTestPutDescriptorWithInvalidName("new&lt;descriptor&gt;");
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutDescriptorWithInvalidNamePercent() throws Exception {
+    LOG_ENTER();
+
+    doTestPutDescriptorWithInvalidName("newdes%criptor");
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutDescriptorWithInvalidNameXMLElement() throws Exception {
+    LOG_ENTER();
+
+    doTestPutDescriptorWithInvalidName("new<descriptor>");
+
+    LOG_EXIT();
+  }
+
+
+  @Test( timeout = TestUtils.LONG_TIMEOUT )
+  public void testPutDescriptorWithInvalidNameTooLong() throws Exception {
+    LOG_ENTER();
+
+    String descName = "newDescriptor";
+    while (descName.length() < 101) {
+      descName += descName;
+    }
+
+    doTestPutDescriptorWithInvalidName(descName);
+
+    LOG_EXIT();
+  }
+
+
+  private void doTestPutDescriptorWithInvalidName(final String newDescriptorName) throws Exception {
+
+    assertNotNull(newDescriptorName);
+
+    final String username = "admin";
+    final String password = "admin-password";
+    final String serviceUrl = clusterUrl + "/api/v1/descriptors";
+
+    final String clusterName           = "test-cluster";
+    final String newDescriptorFileName = newDescriptorName + ".json";
+
+    String newDescriptorJSON = createDescriptor(clusterName);
+
+    // Attempt to PUT the descriptor
+    given().auth().preemptive().basic(username, password)
+           .header("Content-type", MediaType.APPLICATION_JSON)
+           .body(newDescriptorJSON.getBytes("utf-8"))
+           .then()
+           .statusCode(HttpStatus.SC_BAD_REQUEST)
+           .when().put(serviceUrl + "/" + newDescriptorName);
+
+    // Verify that the descriptor was written to the expected location
+    File newDescriptorFile = new File(new File(config.getGatewayConfDir(), "descriptors"), newDescriptorFileName);
+    assertFalse(newDescriptorFile.exists());
+
+    // Request a listing of all the descriptors to verify that the PUT FAILED
+    ResponseBody responseBody = given().auth().preemptive().basic(username, password)
+                                       .header("Accept", MediaType.APPLICATION_JSON)
+                                       .then()
+                                       .statusCode(HttpStatus.SC_OK)
+                                       .contentType(MediaType.APPLICATION_JSON)
+                                       .when().get(serviceUrl).body();
+    assertNotNull(responseBody);
+    List<Map<String, String>> items = responseBody.path("items");
+    for (Map<String, String> item : items) {
+      assertFalse(item.get("name").equals(newDescriptorName));
+    }
   }
 
 
