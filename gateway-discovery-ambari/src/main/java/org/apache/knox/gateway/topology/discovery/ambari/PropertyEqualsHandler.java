@@ -43,7 +43,17 @@ class PropertyEqualsHandler implements ConditionalValueHandler {
 
         ServiceURLPropertyConfig.Property p = config.getConfigProperty(serviceName, propertyName);
         if (p != null) {
-            String value = getActualPropertyValue(cluster, p);
+
+            String value = null;
+            if (p.getType().equalsIgnoreCase(ServiceURLPropertyConfig.Property.TYPE_DERIVED)) {
+                ConditionalValueHandler valueHandler = p.getConditionHandler();
+                if (valueHandler != null) {
+                    value = valueHandler.evaluate(config, cluster);
+                }
+            } else {
+                value = getActualPropertyValue(cluster, p);
+            }
+
             if (propertyValue == null) {
                 // If the property value isn't specified, then we're just checking if the property is set with any value
                 if (value != null) {
@@ -55,7 +65,7 @@ class PropertyEqualsHandler implements ConditionalValueHandler {
             }
 
             if (result == null) {
-                if (propertyValue.equals(value)) {
+                if (propertyValue != null && propertyValue.equals(value)) {
                     result = affirmativeResult.evaluate(config, cluster);
                 } else if (negativeResult != null) {
                     result = negativeResult.evaluate(config, cluster);
