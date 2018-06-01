@@ -73,4 +73,10 @@ public interface SpiGatewayMessages {
 
   @Message( level = MessageLevel.WARN, text = "Error ocurred while accessing params in query string: {0}" )
   void unableToGetParamsFromQueryString(@StackTrace(level=MessageLevel.WARN) Exception e);
+
+  @Message( level = MessageLevel.DEBUG, text = "Accepting service cookie: {0}" )
+  void acceptingServiceCookie( Cookie cookie );
+
+  @Message( level = MessageLevel.ERROR, text = "Error reading Kerberos login configuration {0} : {1}" )
+  void errorReadingKerberosLoginConfig(String fileName, @StackTrace(level=MessageLevel.ERROR) Exception e);
 }
