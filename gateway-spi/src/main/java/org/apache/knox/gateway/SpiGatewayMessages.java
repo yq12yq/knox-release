@@ -17,6 +17,7 @@
  */
 package org.apache.knox.gateway;
 
+import org.apache.http.cookie.Cookie;
 import org.apache.knox.gateway.i18n.messages.Message;
 import org.apache.knox.gateway.i18n.messages.MessageLevel;
 import org.apache.knox.gateway.i18n.messages.Messages;
