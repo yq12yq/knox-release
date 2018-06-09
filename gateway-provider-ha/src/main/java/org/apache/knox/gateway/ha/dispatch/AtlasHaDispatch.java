@@ -33,7 +33,6 @@ public class AtlasHaDispatch extends DefaultHaDispatch {
     private static Set<String> REQUEST_EXCLUDE_HEADERS = new HashSet<>();
 
     static {
-        REQUEST_EXCLUDE_HEADERS.add("Host");
         REQUEST_EXCLUDE_HEADERS.add("Content-Length");
     }
 
@@ -57,18 +56,23 @@ public class AtlasHaDispatch extends DefaultHaDispatch {
     }
 
     @Override
-    protected void executeRequest(HttpUriRequest outboundRequest, HttpServletRequest inboundRequest, HttpServletResponse outboundResponse) throws IOException {
+    protected void executeRequest(HttpUriRequest      outboundRequest,
+                                  HttpServletRequest  inboundRequest,
+                                  HttpServletResponse outboundResponse) throws IOException {
         HttpResponse inboundResponse = null;
         try {
             inboundResponse = executeOutboundRequest(outboundRequest);
 
-            int statusCode = inboundResponse.getStatusLine().getStatusCode();
-            Header originalLocationHeader = inboundResponse.getFirstHeader("Location");
-
-            if((statusCode == HttpServletResponse.SC_MOVED_TEMPORARILY || statusCode == HttpServletResponse.SC_TEMPORARY_REDIRECT)
-                    && originalLocationHeader != null &&  !originalLocationHeader.getValue().endsWith("login.jsp")){
-                inboundResponse.removeHeaders("Location");
-                failoverRequest(outboundRequest, inboundRequest, outboundResponse, inboundResponse, new Exception("Atlas HA redirection"));
+            int sc = inboundResponse.getStatusLine().getStatusCode();
+            if(sc == HttpServletResponse.SC_MOVED_TEMPORARILY || sc == HttpServletResponse.SC_TEMPORARY_REDIRECT) {
+                if(!isLoginRedirect(inboundResponse.getFirstHeader("Location"))) {
+                    inboundResponse.removeHeaders("Location");
+                    failoverRequest(outboundRequest,
+                                    inboundRequest,
+                                    outboundResponse,
+                                    inboundResponse,
+                                    new Exception("Atlas HA redirection"));
+                }
             }
 
             writeOutboundResponse(outboundRequest, inboundRequest, outboundResponse, inboundResponse);
@@ -77,6 +81,15 @@ public class AtlasHaDispatch extends DefaultHaDispatch {
             LOG.errorConnectingToServer(outboundRequest.getURI().toString(), e);
             failoverRequest(outboundRequest, inboundRequest, outboundResponse, inboundResponse, e);
         }
+    }
+
+    private boolean isLoginRedirect(Header locationHeader) {
+        boolean result = false;
+        if (locationHeader != null) {
+            String value = locationHeader.getValue();
+            result = (value.endsWith("login.jsp") || value.contains("originalUrl"));
+        }
+        return result;
     }
 
 }
