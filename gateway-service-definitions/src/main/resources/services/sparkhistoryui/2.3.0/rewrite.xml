@@ -41,42 +41,7 @@
   <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/history/job" pattern="/history/{**}?{**}">
     <rewrite template="{$frontend[url]}/sparkhistory/history/{**}?{**}"/>
   </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/bootstrap" pattern="/static/{bootstrap=bootstrap*}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{bootstrap}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/vis" pattern="/static/{vis=vis.min.*}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{vis}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/webui" pattern="/static/webui.css">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/webui.css"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/timeline" pattern="/static/{timeline=timeline-view*}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{timeline}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/sorttable" pattern="/static/sorttable.js">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/sorttable.js"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/jquery" pattern="/static/{jquery=jquery*.min.js}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{jquery}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/initialize" pattern="/static/initialize-tooltips.js">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/initialize-tooltips.js"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/table" pattern="/static/table.js">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/table.js"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/additional" pattern="/static/additional-metrics.js">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/additional-metrics.js"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/spark" pattern="/static/{spark=spark*}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{spark}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/d3" pattern="/static/{d3=*d3.min.js}">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/{d3}"/>
-  </rule>
-  <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/static/graphlib" pattern="/static/graphlib-dot.min.js">
-    <rewrite template="{$frontend[url]}/sparkhistory/static/graphlib-dot.min.js"/>
-  </rule>
+
   <rule dir="OUT" name="SPARKHISTORYUI/sparkhistory/outbound/apps" pattern="/?{page}?{showIncomplete}">
     <rewrite template="{$frontend[url]}/sparkhistory/?{page}?{showIncomplete}"/>
   </rule>
@@ -125,4 +90,3 @@
     </content>
   </filter>
 </rules>
-
