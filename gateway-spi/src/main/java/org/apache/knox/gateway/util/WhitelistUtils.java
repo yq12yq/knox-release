@@ -21,11 +21,15 @@ import org.apache.knox.gateway.config.GatewayConfig;
 import org.apache.knox.gateway.i18n.messages.MessagesFactory;
 
 import javax.servlet.http.HttpServletRequest;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class WhitelistUtils {
+
+  static final String DEFAULT_CONFIG_VALUE = "DEFAULT";
 
   static final String LOCALHOST_REGEXP_SEGMENT = "(localhost|127\\.0\\.0\\.1|0:0:0:0:0:0:0:1|::1)";
 
@@ -37,11 +41,11 @@ public class WhitelistUtils {
 
   private static final List<String> DEFAULT_SERVICE_ROLES = Arrays.asList("KNOXSSO");
 
-
   public static String getDispatchWhitelist(HttpServletRequest request) {
     String whitelist = null;
 
-    GatewayConfig config = (GatewayConfig) request.getServletContext().getAttribute("org.apache.knox.gateway.config");
+    GatewayConfig config =
+                      (GatewayConfig) request.getServletContext().getAttribute(GatewayConfig.GATEWAY_CONFIG_ATTRIBUTE);
     if (config != null) {
       List<String> whitelistedServiceRoles = new ArrayList<>();
       whitelistedServiceRoles.addAll(DEFAULT_SERVICE_ROLES);
@@ -51,7 +55,7 @@ public class WhitelistUtils {
       if (whitelistedServiceRoles.contains(serviceRole)) {
         // Check the whitelist against the URL to be dispatched
         whitelist = config.getDispatchWhitelist();
-        if (whitelist == null || whitelist.isEmpty()) {
+        if (whitelist == null || whitelist.equalsIgnoreCase(DEFAULT_CONFIG_VALUE)) {
           whitelist = deriveDefaultDispatchWhitelist(request);
           LOG.derivedDispatchWhitelist(whitelist);
         }
@@ -64,22 +68,28 @@ public class WhitelistUtils {
   private static String deriveDefaultDispatchWhitelist(HttpServletRequest request) {
     String defaultWhitelist = null;
 
-    String thisHost = request.getHeader("X-Forwarded-Host");
-    if (thisHost == null) {
-      thisHost = request.getServerName();
+    // Check first for the X-Forwarded-Host header, and use it to derive the domain-based whitelist
+    String requestedHost = request.getHeader("X-Forwarded-Host");
+    if (requestedHost != null && !requestedHost.isEmpty()) {
+      // The value may include port information, which needs to be removed
+      int portIndex = requestedHost.indexOf(":");
+      if (portIndex > 0) {
+        requestedHost = requestedHost.substring(0, portIndex);
+      }
+      defaultWhitelist = deriveDomainBasedWhitelist(requestedHost);
     }
 
-    // If the host is not some form of localhost, try to determine its domain
-    if (!thisHost.matches(LOCALHOST_REGEXP)) {
-      int domainIndex = thisHost.indexOf('.');
-      if (domainIndex > 0) {
-        String domain = thisHost.substring(thisHost.indexOf('.'));
-        String domainPattern = ".+" + domain.replaceAll("\\.", "\\\\.");
-        defaultWhitelist = String.format(DEFAULT_DISPATCH_WHITELIST_TEMPLATE, domainPattern);
+    // If the domain-based whitelist could not be derived from the X-Forwarded-Host header value, then use the
+    // localhost FQDN
+    if (defaultWhitelist == null) {
+      try {
+          defaultWhitelist = deriveDomainBasedWhitelist(InetAddress.getLocalHost().getCanonicalHostName());
+      } catch (UnknownHostException e) {
+        //
       }
     }
 
-    // If the host is localhost or the domain could not be determined, default to the local/relative whitelist
+    // If the domain could not be determined, default to just the local/relative whitelist
     if (defaultWhitelist == null) {
       defaultWhitelist = String.format(DEFAULT_DISPATCH_WHITELIST_TEMPLATE, LOCALHOST_REGEXP_SEGMENT);
     }
@@ -87,5 +97,16 @@ public class WhitelistUtils {
     return defaultWhitelist;
   }
 
+  private static String deriveDomainBasedWhitelist(String hostname) {
+    String whitelist = null;
+    int domainIndex = hostname.indexOf('.');
+    if (domainIndex > 0) {
+      String domain = hostname.substring(hostname.indexOf('.'));
+      String domainPattern = ".+" + domain.replaceAll("\\.", "\\\\.");
+      whitelist =
+              String.format(DEFAULT_DISPATCH_WHITELIST_TEMPLATE, LOCALHOST_REGEXP_SEGMENT + "|(" + domainPattern + ")");
+    }
+    return whitelist;
+  }
 
 }

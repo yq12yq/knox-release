@@ -18,8 +18,10 @@
 package org.apache.knox.gateway.service.knoxsso;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,6 +65,10 @@ public class WebSSOResource {
   private static final String SSO_COOKIE_TOKEN_AUDIENCES_PARAM = "knoxsso.token.audiences";
   private static final String SSO_COOKIE_TOKEN_SIG_ALG = "knoxsso.token.sigalg";
   private static final String SSO_COOKIE_TOKEN_WHITELIST_PARAM = "knoxsso.redirect.whitelist.regex";
+
+  /* parameters expected by knoxsso */
+  private static final String SSO_EXPECTED_PARAM = "knoxsso.expected.params";
+
   private static final String SSO_ENABLE_SESSION_PARAM = "knoxsso.enable.session";
   private static final String ORIGINAL_URL_REQUEST_PARAM = "originalUrl";
   private static final String ORIGINAL_URL_COOKIE_NAME = "original-url";
@@ -79,6 +85,7 @@ public class WebSSOResource {
   private List<String> targetAudiences = new ArrayList<>();
   private boolean enableSession = false;
   private String signatureAlgorithm = "RS256";
+  private List<String> ssoExpectedparams = new ArrayList<>();
 
   @Context
   HttpServletRequest request;
@@ -153,6 +160,11 @@ public class WebSSOResource {
     if (sigAlg != null) {
       signatureAlgorithm = sigAlg;
     }
+
+    final String expectedParams = context.getInitParameter(SSO_EXPECTED_PARAM);
+    if (expectedParams != null) {
+      ssoExpectedparams = Arrays.asList(expectedParams.split(","));
+    }
   }
 
   @GET
@@ -168,8 +180,8 @@ public class WebSSOResource {
   }
 
   private Response getAuthenticationToken(int statusCode) {
-    GatewayServices services = (GatewayServices) request.getServletContext()
-            .getAttribute(GatewayServices.GATEWAY_SERVICES_ATTRIBUTE);
+    GatewayServices services =
+                (GatewayServices) request.getServletContext().getAttribute(GatewayServices.GATEWAY_SERVICES_ATTRIBUTE);
     boolean removeOriginalUrlCookie = true;
     String original = getCookieValue((HttpServletRequest) request, ORIGINAL_URL_COOKIE_NAME);
     if (original == null) {
@@ -182,11 +194,25 @@ public class WebSSOResource {
         throw new WebApplicationException("Original URL not found in the request.", Response.Status.BAD_REQUEST);
       }
 
-      boolean validRedirect = (whitelist == null) || whitelist.isEmpty() || RegExUtils.checkWhitelist(whitelist, original);
+      boolean validRedirect = true;
+
+      // If there is a whitelist defined, then the original URL must be validated against it.
+      // If there is no whitelist, then everything is valid.
+      if (whitelist != null) {
+        String decodedOriginal = null;
+        try {
+          decodedOriginal = URLDecoder.decode(original, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+          //
+        }
+
+        validRedirect = RegExUtils.checkWhitelist(whitelist, (decodedOriginal != null ? decodedOriginal : original));
+      }
+
       if (!validRedirect) {
         log.whiteListMatchFail(original, whitelist);
         throw new WebApplicationException("Original URL not valid according to the configured whitelist.",
-                Response.Status.BAD_REQUEST);
+                                          Response.Status.BAD_REQUEST);
       }
     }
 
@@ -246,13 +272,22 @@ public class WebSSOResource {
     String original = request.getParameter(ORIGINAL_URL_REQUEST_PARAM);
     StringBuffer buf = new StringBuffer(original);
 
+    boolean first = true;
+
     // Add any other query params.
     // Probably not ideal but will not break existing integrations by requiring
     // some encoding.
     Map<String, String[]> params = request.getParameterMap();
     for (Entry<String, String[]> entry : params.entrySet()) {
       if (!ORIGINAL_URL_REQUEST_PARAM.equals(entry.getKey())
-          && !original.contains(entry.getKey() + "=")) {
+          && !original.contains(entry.getKey() + "=")
+          && !ssoExpectedparams.contains(entry.getKey())) {
+
+        if(first) {
+          buf.append("?");
+          first = false;
+        }
+
         buf.append("&").append(entry.getKey());
         String[] values = entry.getValue();
         if (values.length > 0 && values[0] != null) {
