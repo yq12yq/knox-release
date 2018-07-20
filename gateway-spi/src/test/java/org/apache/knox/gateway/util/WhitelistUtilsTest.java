@@ -20,11 +20,9 @@ import org.apache.knox.gateway.config.GatewayConfig;
 import org.easymock.EasyMock;
 import org.junit.Test;
 
-import javax.annotation.RegEx;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -63,12 +61,12 @@ public class WhitelistUtilsTest {
     // Check localhost by name
     String whitelist = doTestGetDispatchWhitelist(config, serviceRole);
     assertNotNull(whitelist);
-    assertTrue(whitelist.contains("localhost"));
+    assertTrue("Expected whitelist to contain 'localhost' but was: " + whitelist, whitelist.contains("localhost"));
 
     // Check localhost by loopback address
     whitelist = doTestGetDispatchWhitelist(config, "127.0.0.1", serviceRole);
     assertNotNull(whitelist);
-    assertTrue(whitelist.contains("localhost"));
+    assertTrue("Expected whitelist to contain 'localhost' but was: " + whitelist, whitelist.contains("localhost"));
   }
 
   @Test
@@ -152,8 +150,8 @@ public class WhitelistUtilsTest {
         doTestGetDispatchWhitelist(createMockGatewayConfig(Collections.singletonList(serviceRole), WHITELIST),
                                    serviceRole);
     assertNotNull(whitelist);
-    assertTrue("Expected the derived localhost whitelist.",
-               RegExUtils.checkWhitelist(whitelist, "http://localhost:9099/"));
+    assertTrue("Expected to match whitelist given the explicitly configured DEFAULT whitelist.",
+        RegExUtils.checkWhitelist(whitelist, "http://localhost:9099/"));
   }
 
   private String doTestGetDispatchWhitelist(GatewayConfig config, String serviceRole) {
