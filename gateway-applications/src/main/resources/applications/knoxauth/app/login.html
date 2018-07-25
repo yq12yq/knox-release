@@ -27,8 +27,7 @@
 		<meta name="viewport" content="width=device-width">
 		
 		<link rel="shortcut icon" href="images/favicon.ico">
-		<link href="styles/bootstrap.min.css" media="all" rel="stylesheet" type="text/css" id="bootstrap-css">
-		<link href="styles/knox.css" media="all" rel="stylesheet" type="text/css" >
+		<link href="styles/hwx-login.css" media="all" rel="stylesheet" type="text/css" >
 
 		<script src="libs/bower/jquery/js/jquery.js" ></script>
     <script type="text/javascript" src="js/knoxauth.js"></script>
@@ -47,30 +46,39 @@
 
 	</head>
 	<body class="login" style="">
-		<!-- Page content
-		================================================== -->
-		<section id="signin-container" style="margin-top: 4.5px;">
-			<div class="l-logo">
-				<img src="images/knox-logo.gif" alt="Knox logo">
-			</div>
-			<form action="" method="post" accept-charset="utf-8">
-				<fieldset>
-					<div class="fields">
-						<label><i class="icon-user"></i> Username:</label>
-						<input type="text" name="username" id="username" tabindex="1" onkeypress=keypressed(event) autofocus>
-						<label><i class="icon-lock"></i> Password:</label>	
-						<input type="password" name="password" id="password" tabindex="2" autocomplete="off" onkeypress=keypressed(event)>
+		<div class="page-wrapper">
+			<div class="login-wrapper">
+				<div class="login-pane-wrapper">
+					<div class="hwx-login-img">
+						<div class="hwx-logo">
+							<!--<div class="text-large">Knox SSO</div>-->
+						</div>
 					</div>
-					<span id="errorBox" class="help-inline" style="color:white;display:none;"><span class="errorMsg"></span>
-						<i class="icon-warning-sign" style="color:#ae2817;"></i>
-					</span>
-					<button type="button" class="btn btn-primary btn-block" id="signIn" tabindex="4" onkeypress="keypressed(event)" onclick="login();">
-						Sign In
-						<i id="signInLoading" class="icon-spinner icon-spin pull-right icon-sign-in"></i>
-					</button>
-				</fieldset>
-			</form>
-		</section>
-
+					<div class="hwx-login-controls">
+						<form action="" method="post" accept-charset="utf-8">
+							<div class="field-group">
+								<label aria-label="Username">Username</label>
+								<input type="text" name="username" tabindex="1" onkeypress=keypressed(event) autofocus data-se="knox__username">
+							</div>
+							<div class="field-group">
+								<label aria-label="Password">Password</label>
+								<input type="password" name="password" tabindex="2" autocomplete="off" onkeypress=keypressed(event) required data-se="knox__password">
+							</div>
+							<span id="errorBox" class="help-inline" style="color:white;display:none;" data-se="knox__error">
+							  <span class="errorMsg"></span>
+							  <i class="icon-warning-sign" style="color:#ae2817;"></i>
+							</span>
+							<div id="tracking-message-container"></div>
+							<div class="action-group">
+								<button type="button" class="mdl-button btn-hwx-primary" id="signIn" tabindex="4" onkeypress="keypressed(event)" onclick="login();" data-se="knox__sign_in">
+									<span> Login </span>
+									<i class="fa fa-spinner fa-pulse fa-fw"></i>
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
 	</body>
 </html>
