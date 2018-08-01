@@ -569,4 +569,42 @@
         </properties>
     </service>
 
+    <service name="BEACON">
+        <url-pattern>{SCHEME}://{HOST}:{PORT}</url-pattern>
+        <properties>
+            <property name="HOST">
+                <component>BEACON_SERVER</component>
+                <hostname/>
+            </property>
+            <property name="TLS_ENABLED">
+                <component>BEACON_SERVER</component>
+                <config-property>beacon_tls_enabled</config-property>
+            </property>
+            <property name="BEACON_PORT">
+                <component>BEACON_SERVER</component>
+                <config-property>beacon_port</config-property>
+            </property>
+            <property name="BEACON_TLS_PORT">
+                <component>BEACON_SERVER</component>
+                <config-property>beacon_tls_port</config-property>
+            </property>
+            <property name="SCHEME">
+                <config-property>
+                    <if property="TLS_ENABLED" value="true">
+                        <then>https</then>
+                        <else>http</else>
+                    </if>
+                </config-property>
+            </property>
+            <property name="PORT">
+                <config-property>
+                    <if property="TLS_ENABLED" value="true">
+                        <then>BEACON_TLS_PORT</then>
+                        <else>BEACON_PORT</else>
+                    </if>
+                </config-property>
+            </property>
+        </properties>
+    </service>
+
 </service-discovery-url-mappings>
