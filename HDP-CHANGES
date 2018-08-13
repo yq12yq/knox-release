@@ -95,6 +95,7 @@ Improvements:
     KNOX-1153 - Service-level overrides for HA provider configuration in generated topologies, and alternate provide config formats.
 
 Bugs:
+    KNOX-1420 - Add app.css path for Zeppelin's style sheet (Prabhjyot Singh via Sandeep More)
     KNOX-1360 - Fix ambari broken images (Aleksandr Kovalenko via Sandeep More)
     KNOX-1358 - Create new version definition for SHS (Marco Gaido via lmccay)
     KNOX-1345 - Fix javadoc errors
