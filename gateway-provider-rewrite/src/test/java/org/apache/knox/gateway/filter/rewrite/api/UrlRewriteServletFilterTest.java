@@ -31,7 +31,6 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.http.HttpTester;
 import org.eclipse.jetty.servlet.ServletTester;
-import org.eclipse.jetty.util.ArrayQueue;
 import org.junit.After;
 import org.junit.Test;
 
@@ -47,10 +46,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.ArrayDeque;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.anyOf;
@@ -67,7 +68,7 @@ public class UrlRewriteServletFilterTest {
   private ServletTester server;
   private HttpTester.Request request;
   private HttpTester.Response response;
-  private ArrayQueue<MockInteraction> interactions;
+  private Queue<MockInteraction> interactions;
   private MockInteraction interaction;
 
   private static URL getTestResource( String name ) {
@@ -95,7 +96,7 @@ public class UrlRewriteServletFilterTest {
     }
     rewriteFilter.setFilter( new UrlRewriteServletFilter() );
 
-    interactions = new ArrayQueue<MockInteraction>();
+    interactions = new ArrayDeque<>();
 
     ServletHolder servlet = server.addServlet( MockServlet.class, "/" );
     servlet.setServlet( new MockServlet( "mock-servlet", interactions ) );

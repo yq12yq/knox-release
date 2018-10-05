@@ -23,13 +23,14 @@ import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.http.HttpTester;
 import org.eclipse.jetty.servlet.ServletTester;
-import org.eclipse.jetty.util.ArrayQueue;
 import org.junit.After;
 import org.junit.Before;
 
 import javax.servlet.DispatcherType;
 import java.net.URL;
+import java.util.ArrayDeque;
 import java.util.EnumSet;
+import java.util.Queue;
 
 import static org.junit.Assert.fail;
 
@@ -38,7 +39,7 @@ public class UrlRewriteServletContextListenerTest {
   private ServletTester server;
   private HttpTester.Request request;
   private HttpTester.Response response;
-  private ArrayQueue<MockInteraction> interactions;
+  private Queue<MockInteraction> interactions;
   private MockInteraction interaction;
 
   private static URL getTestResource( String name ) {
@@ -60,7 +61,7 @@ public class UrlRewriteServletContextListenerTest {
     FilterHolder filter = server.addFilter( UrlRewriteServletFilter.class, "/*", EnumSet.of( DispatcherType.REQUEST ) );
     filter.setFilter( new UrlRewriteServletFilter() );
 
-    interactions = new ArrayQueue<MockInteraction>();
+    interactions = new ArrayDeque<>();
 
     ServletHolder servlet = server.addServlet( MockServlet.class, "/" );
     servlet.setServlet( new MockServlet( "mock-servlet", interactions ) );

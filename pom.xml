@@ -116,7 +116,7 @@
         <groovy-version>2.4.8</groovy-version>
         <hadoop-version>3.0.0</hadoop-version>
         <jackson.version>2.9.5</jackson.version>
-        <jetty-version>9.2.26.v20180806</jetty-version>
+        <jetty-version>9.4.12.v20180830</jetty-version>
         <mockito-version>1.10.19</mockito-version>
         <surefire-version>2.16</surefire-version>
         <failsafe-version>2.19.1</failsafe-version>
@@ -124,7 +124,10 @@
         <javax-websocket-version>1.1</javax-websocket-version>
         <metrics-version>3.1.2</metrics-version>
         <shiro.version>1.2.6</shiro.version>
+        <asm.version>7.0</asm.version>
         <commons-beanutils-version>1.9.3</commons-beanutils-version>
+        <commons-lang.version>2.6</commons-lang.version>
+        <cglib.version>3.2.9</cglib.version>
     </properties>
 
     <licenses>
@@ -812,18 +815,24 @@
                 <version>${jetty-version}</version>
             </dependency>
             <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-servlet</artifactId>
+                <version>${jetty-version}</version>
+                <classifier>tests</classifier>
+            </dependency>
+            <dependency>
+                <groupId>org.eclipse.jetty</groupId>
+                <artifactId>jetty-http</artifactId>
+                <version>${jetty-version}</version>
+                <classifier>tests</classifier>
+            </dependency>
+
+            <dependency>
                 <groupId>javax.servlet</groupId>
                 <artifactId>javax.servlet-api</artifactId>
                 <version>3.1.0</version>
             </dependency>
 
-            <!--
-            <dependency>
-                <groupId>org.eclipse.jetty</groupId>
-                <artifactId>jetty-jaspi</artifactId>
-                <version>${jetty-version}</version>
-            </dependency>
-            -->
             <dependency>
                 <groupId>org.eclipse.persistence</groupId>
                 <artifactId>eclipselink</artifactId>
@@ -1074,6 +1083,13 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.4</version>
             </dependency>
+
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib</artifactId>
+                <version>${cglib.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>commons-cli</groupId>
                 <artifactId>commons-cli</artifactId>
@@ -1103,6 +1119,17 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-digester3</artifactId>
                 <version>3.2</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>cglib</groupId>
+                        <artifactId>cglib</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>commons-lang</groupId>
+                <artifactId>commons-lang</artifactId>
+                <version>${commons-lang.version}</version>
             </dependency>
 
             <dependency>
@@ -1228,6 +1255,17 @@
             </dependency>
 
             <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm-commons</artifactId>
+                <version>${asm.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-annotations</artifactId>
                 <version>${jetty-version}</version>
@@ -1244,6 +1282,11 @@
             </dependency>
 
              <!-- Websocket support -->
+            <dependency>
+                <groupId>org.eclipse.jetty.websocket</groupId>
+                <artifactId>websocket-api</artifactId>
+                <version>${jetty-version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.eclipse.jetty.websocket</groupId>
                 <artifactId>websocket-server</artifactId>
