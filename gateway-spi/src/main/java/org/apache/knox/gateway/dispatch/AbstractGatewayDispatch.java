@@ -162,6 +162,11 @@ public abstract class AbstractGatewayDispatch implements Dispatch {
       str.replace(greaterThan, greaterThan+1, "%3E");
       greaterThan = str.indexOf(">", greaterThan+1);
     }
+    int space = str.indexOf(" ");
+    while (space > -1) {
+      str.replace(space, space+1, "%20");
+      space = str.indexOf(">", space+1);
+    }
   }
 
 }

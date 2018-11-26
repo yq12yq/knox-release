@@ -99,5 +99,16 @@ public class PassAllHeadersNoEncodingDispatchTest {
     uri = dispatch.getDispatchUrl( request );
     assertThat( uri.toASCIIString(), is( "http://test-host:8080/api/v1/clusters/mmolnar-knox2/configurations/service_config_versions?group_id%3E0&fields=*&_=1541527314780" ) );
 
+    /* encode space */
+    path = "http://test-host:8080/api/v1/views/FILES/versions/1.0.0/instances/AUTO_FILES_INSTANCE/resources/files/download/browse";
+    query = "path=/tmp/Test hdfs.txt&checkperm=true&_=1542733581677";
+    request = EasyMock.createNiceMock( HttpServletRequest.class );
+    EasyMock.expect( request.getRequestURI() ).andReturn( path ).anyTimes();
+    EasyMock.expect( request.getRequestURL() ).andReturn( new StringBuffer( path ) ).anyTimes();
+    EasyMock.expect( request.getQueryString() ).andReturn( query ).anyTimes();
+    EasyMock.replay( request );
+    uri = dispatch.getDispatchUrl( request );
+    assertThat( uri.toASCIIString(), is( "http://test-host:8080/api/v1/views/FILES/versions/1.0.0/instances/AUTO_FILES_INSTANCE/resources/files/download/browse?path=/tmp/Test%20hdfs.txt&checkperm=true&_=1542733581677" ) );
+
   }
 }
