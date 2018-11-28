@@ -145,6 +145,16 @@ public abstract class AbstractGatewayDispatch implements Dispatch {
       str.replace(pipe, pipe+1, "%7C");
       pipe = str.indexOf("|", pipe+1);
     }
+    int lessThan = str.indexOf("<");
+    while (lessThan > -1) {
+      str.replace(lessThan, lessThan+1, "%3C");
+      lessThan = str.indexOf("<", lessThan+1);
+    }
+    int greaterThan = str.indexOf(">");
+    while (greaterThan > -1) {
+      str.replace(greaterThan, greaterThan+1, "%3E");
+      greaterThan = str.indexOf(">", greaterThan+1);
+    }
   }
 
 }
